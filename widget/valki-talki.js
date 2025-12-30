@@ -22,6 +22,7 @@
   --brand-orange:#f15a24;
 
   --valki-font: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
+  --valki-content-max: 860px;
 }
 
 #valki-bg{
@@ -35,6 +36,18 @@
 
 html.valki-chat-open #valki-bg{
   display:none !important;
+}
+
+.valki-container{
+  width:100%;
+  box-sizing:border-box;
+}
+@media (min-width: 1024px){
+  .valki-container{
+    max-width:var(--valki-content-max);
+    margin:0 auto;
+    padding:0 16px;
+  }
 }
 
 /* Optional: hide CMP prefs button (your site button) */
@@ -535,12 +548,19 @@ html.valki-chat-open [id*="menu" i]{
   padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
   display:flex;
   align-items:center;
-  justify-content:space-between;
+  justify-content:center;
   border-bottom:1px solid rgba(255,255,255,.08);
   background:linear-gradient(to bottom,#111111,#0b0b0b);
   gap:10px;
   width:100%;
   max-width:none;
+}
+.valki-modal-header-inner{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
 }
 
 .valki-header-left{ display:flex; align-items:center; gap:10px; min-width:0; }
@@ -620,14 +640,12 @@ html.valki-chat-open [id*="menu" i]{
   scrollbar-width:thin;
   scrollbar-color: rgba(255,255,255,.25) transparent;
   width:100%;
-  max-width:none;
   box-sizing:border-box;
   display:flex;
   justify-content:center;
 }
 .valki-messages-inner{
   width:100%;
-  max-width:none;
   margin:0 auto;
   padding:0 16px 12px;
 }
@@ -705,11 +723,9 @@ html.valki-chat-open [id*="menu" i]{
   --valki-cookie-reserve: 52px;
   padding:12px 0 calc(16px + env(safe-area-inset-bottom) + var(--valki-cookie-reserve));
   width:100%;
-  max-width:none;
   margin-top:auto;
 }
 .valki-chat-form-inner{
-  max-width:none;
   margin:0 auto;
   padding:0 16px;
   box-sizing:border-box;
@@ -831,7 +847,6 @@ html.valki-chat-open [id*="menu" i]{
 
 /* Attachments tray */
 .valki-attachments{
-  max-width:none;
   margin:8px auto 0;
   display:flex;
   gap:10px;
@@ -1207,29 +1222,31 @@ html.valki-chat-open [id*="menu" i]{
   <div id="valki-overlay" class="valki-overlay" aria-hidden="true">
     <div class="valki-modal" role="dialog" aria-modal="true" aria-labelledby="valki-title">
       <div class="valki-modal-header">
-        <div class="valki-header-left">
-          <img class="valki-header-avatar" id="valki-header-avatar" src="https://valki.wiki/blogmedia/Valki%20Talki.jpg" alt="Valki avatar" />
-          <div class="valki-modal-title-text">
-            <span class="name" id="valki-title">Valki Talki</span>
-            <span class="session" id="valki-session-label">Valki-session-new</span>
+        <div class="valki-modal-header-inner valki-container">
+          <div class="valki-header-left">
+            <img class="valki-header-avatar" id="valki-header-avatar" src="https://valki.wiki/blogmedia/Valki%20Talki.jpg" alt="Valki avatar" />
+            <div class="valki-modal-title-text">
+              <span class="name" id="valki-title">Valki Talki</span>
+              <span class="session" id="valki-session-label">Valki-session-new</span>
+            </div>
           </div>
-        </div>
 
-        <div class="valki-header-actions">
-          <div class="valki-header-actions-left">
-            <button class="valki-pill primary" id="valki-loginout-btn" type="button" title="Login">Login</button>
-            <button class="valki-pill" id="valki-deleteall-btn" type="button" title="Delete all messages">Delete</button>
+          <div class="valki-header-actions">
+            <div class="valki-header-actions-left">
+              <button class="valki-pill primary" id="valki-loginout-btn" type="button" title="Login">Login</button>
+              <button class="valki-pill" id="valki-deleteall-btn" type="button" title="Delete all messages">Delete</button>
+            </div>
+            <button id="valki-close" class="valki-close-btn" type="button" aria-label="Close chat">✕</button>
           </div>
-          <button id="valki-close" class="valki-close-btn" type="button" aria-label="Close chat">✕</button>
         </div>
       </div>
 
       <div id="valki-messages" class="valki-messages" role="log" aria-live="polite">
-        <div class="valki-messages-inner" id="valki-messages-inner"></div>
+        <div class="valki-messages-inner valki-container" id="valki-messages-inner"></div>
       </div>
 
       <form id="valki-chat-form" class="valki-chat-form" autocomplete="off">
-        <div class="valki-chat-form-inner">
+        <div class="valki-chat-form-inner valki-container">
           <div class="valki-chat-inner">
             <!-- Attach button -->
             <button class="valki-chat-attach" id="valki-chat-attach" type="button" aria-label="Upload image">
@@ -1265,9 +1282,9 @@ html.valki-chat-open [id*="menu" i]{
           </div>
 
           <!-- Attachments preview tray -->
-          <div class="valki-attachments" id="valki-attachments" aria-label="Attachments" style="display:none;"></div>
+          <div class="valki-attachments valki-container" id="valki-attachments" aria-label="Attachments" style="display:none;"></div>
 
-          <div class="valki-disclaimer">
+          <div class="valki-disclaimer valki-container">
             <div>Valki signals may distort. Verify info.</div>
             <button
               type="button"
