@@ -84,6 +84,31 @@ html,body{
 }
 
 /* ===============================
+   SIGNAL LOCK
+================================*/
+.valki-signal-lock{
+  font-family:"Inter", system-ui, -apple-system, sans-serif;
+  font-size:40px;
+  line-height:1.08;
+  letter-spacing:-0.01em;
+  text-align:center;
+  color:#f4f4f4;
+  margin:0 auto;
+  padding:0;
+  max-width:960px;
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
+  caret-color:transparent;
+  cursor:default;
+}
+.valki-signal-line{ display:block; font-weight:500; }
+.valki-signal-line.muted{ font-weight:400; color:rgba(255,255,255,0.55); }
+@media (max-width:900px){ .valki-signal-lock{ font-size:40px; } }
+@media (max-width:640px){ .valki-signal-lock{ font-size:32px; padding:0 14px; } }
+@media (max-width:360px){ .valki-signal-lock{ font-size:28px; } }
+
+/* ===============================
    LANDING SEARCH
 ================================*/
 .valki-search-form{ width:100%; max-width:720px; margin:0 auto; padding: 0 14px; box-sizing:border-box; }
@@ -871,8 +896,38 @@ html.valki-chat-open [id*="menu" i]{
 }`;
     (document.head || document.getElementsByTagName('head')[0] || document.documentElement).appendChild(styleTag);
 
+    const headEl = document.head || document.getElementsByTagName('head')[0] || document.documentElement;
+    if (!headEl.querySelector('link[data-valki-inter-preconnect]')){
+      const preconnect = document.createElement('link');
+      preconnect.setAttribute('rel','preconnect');
+      preconnect.setAttribute('href','https://fonts.googleapis.com');
+      preconnect.setAttribute('data-valki-inter-preconnect','');
+      headEl.appendChild(preconnect);
+    }
+    if (!headEl.querySelector('link[data-valki-inter-preconnect-gstatic]')){
+      const preconnectGstatic = document.createElement('link');
+      preconnectGstatic.setAttribute('rel','preconnect');
+      preconnectGstatic.setAttribute('href','https://fonts.gstatic.com');
+      preconnectGstatic.setAttribute('crossorigin','');
+      preconnectGstatic.setAttribute('data-valki-inter-preconnect-gstatic','');
+      headEl.appendChild(preconnectGstatic);
+    }
+    if (!headEl.querySelector('link[data-valki-inter-css]')){
+      const interLink = document.createElement('link');
+      interLink.setAttribute('rel','stylesheet');
+      interLink.setAttribute('href','https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+      interLink.setAttribute('data-valki-inter-css','');
+      headEl.appendChild(interLink);
+    }
+
     const container = document.createElement('div');
     container.innerHTML = `<div class="valki-root" id="valki-root">
+  <!-- Valki Signal Lock -->
+  <div class="valki-signal-lock" id="valki-signal-lock" aria-label="Valki Talki. Web3.">
+    <div class="valki-signal-line" id="line-main">Crypto Stuck?</div>
+    <div class="valki-signal-line muted" id="line-sub">Explained.</div>
+  </div>
+
   <!-- Landing search -->
   <form id="valki-search-form" class="valki-search-form" autocomplete="off">
     <div class="valki-search-inner">
@@ -1091,6 +1146,9 @@ html.valki-chat-open [id*="menu" i]{
   const $ = (id)=>document.getElementById(id);
 
   const root        = $("valki-root");
+  const signalLock   = $("valki-signal-lock");
+  const signalLineMain = $("line-main");
+  const signalLineSub  = $("line-sub");
 
   const searchForm  = $("valki-search-form");
   const searchInput = $("valki-search-input");
@@ -1200,6 +1258,22 @@ html.valki-chat-open [id*="menu" i]{
     tr: "Ne yanlış gitti?"
   };
 
+  const signalCopy = {
+    en: ["Crypto Stuck?", "Explained."],
+    nl: ["Vast in crypto?", "Uitgelegd."],
+    de: ["Fest in Krypto?", "Erklärt."],
+    fr: ["Bloqué en crypto ?", "Expliqué."],
+    es: ["¿Atascado en cripto?", "Explicado."],
+    it: ["Bloccato nel crypto?", "Spiegato."],
+    pt: ["Preso no cripto?", "Explicado."],
+    pl: ["Utknąłeś w krypto?", "Wyjaśnione."],
+    ja: ["暗号資産で行き詰まってる？", "解説します。"],
+    zh: ["加密货币卡住了？", "为你解释。"],
+    ko: ["크립토에서 막혔나요?", "설명해드립니다."],
+    ar: ["عالِق في عالم الكريبتو؟", "نوضّح لك."],
+    tr: ["Kriptoda mı takıldın?", "Açıklıyoruz."]
+  };
+
   function pickLocale(){
     const langs = (navigator.languages && navigator.languages.length)
       ? navigator.languages
@@ -1212,14 +1286,35 @@ html.valki-chat-open [id*="menu" i]{
     }
     return "en";
   }
-  function applyPlaceholders(){
+
+  function applySignalLockLocale(loc){
+    if (!signalLock || !signalLineMain || !signalLineSub) return;
+    const lang = (loc || "en").toLowerCase().split("-")[0];
+    const txt = signalCopy[lang] || signalCopy.en;
+    signalLineMain.textContent = txt[0];
+    signalLineSub.textContent = txt[1];
+    signalLock.setAttribute("lang", lang);
+    if (lang === "ar") signalLock.setAttribute("dir","rtl");
+    else signalLock.removeAttribute("dir");
+  }
+
+  function preventSignalLockCopy(){
+    if (!signalLock) return;
+    const block = (e)=>{ e.preventDefault(); return false; };
+    ["copy","cut","contextmenu","selectstart"].forEach(evt=> signalLock.addEventListener(evt, block));
+    signalLock.addEventListener("mousedown", (e)=> e.preventDefault());
+  }
+
+  function applyLocale(){
     const loc = pickLocale();
     const txt = searchCopy[loc] || searchCopy.en;
     searchInput.placeholder = txt;
     chatInput.placeholder = txt;
+    applySignalLockLocale(loc);
   }
-  applyPlaceholders();
-  window.addEventListener("languagechange", applyPlaceholders);
+  applyLocale();
+  preventSignalLockCopy();
+  window.addEventListener("languagechange", applyLocale);
 
   /* ===============================
      Auth token + user state
