@@ -1775,50 +1775,6 @@ html.valki-chat-open header.valki-site-header{
     return prefix + "-" + Math.random().toString(16).slice(2) + Date.now().toString(16);
   }
 
-  const IS_IOS = /iP(hone|od|ad)/i.test(navigator.userAgent || "");
-  let iosViewportHandler = null;
-
-  function currentKeyboardOffset(){
-    if (!window.visualViewport) return 0;
-    const layoutHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-    return Math.max(0, layoutHeight - (window.visualViewport.height + (window.visualViewport.offsetTop || 0)));
-  }
-
-  function applyIOSKeyboardInsets(activeEl){
-    if (!IS_IOS || !window.visualViewport || !chatForm) return;
-    const gap = currentKeyboardOffset();
-    chatForm.style.paddingBottom = "calc(" + CHAT_PAD_BASE + " + " + gap + "px)";
-    scrollToBottom(true);
-    try{
-      if (activeEl && activeEl.scrollIntoView) activeEl.scrollIntoView({ block:"nearest" });
-    }catch{}
-    logDebug("iosKeyboard:inset", null, { gap });
-  }
-
-  function resetIOSKeyboardInsets(){
-    if (!chatForm) return;
-    chatForm.style.paddingBottom = CHAT_PAD_BASE;
-    logDebug("iosKeyboard:reset", null, {});
-  }
-
-  function bindIOSKeyboardListeners(activeEl){
-    if (!IS_IOS || !window.visualViewport) return;
-    if (iosViewportHandler) return;
-    iosViewportHandler = ()=> applyIOSKeyboardInsets(activeEl || document.activeElement);
-    window.visualViewport.addEventListener("resize", iosViewportHandler, { passive:true });
-    window.visualViewport.addEventListener("scroll", iosViewportHandler, { passive:true });
-    iosViewportHandler();
-  }
-
-  function unbindIOSKeyboardListeners(){
-    if (!IS_IOS || !window.visualViewport) return;
-    if (!iosViewportHandler) return;
-    window.visualViewport.removeEventListener("resize", iosViewportHandler);
-    window.visualViewport.removeEventListener("scroll", iosViewportHandler);
-    iosViewportHandler = null;
-    resetIOSKeyboardInsets();
-  }
-
   function forceOverlayHidden(el, reason){
     if (!el) return;
     el.classList.remove("is-visible");
@@ -2295,7 +2251,6 @@ html.valki-chat-open header.valki-site-header{
     const why = (typeof reason === "string") ? reason : "closeOverlay";
     logDebug("closeOverlay:start", overlay);
     setVisible(overlay, false, why);
-    unbindIOSKeyboardListeners();
     unlockBodyScroll();
   }
 
@@ -2918,14 +2873,6 @@ html.valki-chat-open header.valki-site-header{
   /* ===============================
      Search + chat form events
   ================================ */
-  function handleIOSInputFocus(e){ bindIOSKeyboardListeners(e.target); }
-  function handleIOSInputBlur(){ unbindIOSKeyboardListeners(); }
-
-  chatInput.addEventListener("focus", handleIOSInputFocus);
-  chatInput.addEventListener("blur", handleIOSInputBlur);
-  searchInput.addEventListener("focus", handleIOSInputFocus);
-  searchInput.addEventListener("blur", handleIOSInputBlur);
-
   searchForm.addEventListener("submit", (e)=>{
     e.preventDefault();
     const q = cleanText(searchInput.value);
