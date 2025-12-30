@@ -93,6 +93,7 @@ html,body{
   max-width:none;
   margin:0;
   padding:0;
+  min-height:100vh;
   box-sizing:border-box;
   display:flex;
   justify-content:center;
@@ -100,6 +101,20 @@ html,body{
   align-items:center;
   position:relative;
   z-index:1;
+}
+.valki-landing-shell{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+@media (min-width: 641px){
+  .valki-landing-shell{
+    min-height:100vh;
+    justify-content:center;
+    padding:10px 0 24px;
+    box-sizing:border-box;
+  }
 }
 
 /* ===============================
@@ -140,9 +155,9 @@ html,body{
 }
 
 .valki-hero-actions{
-  position:absolute;
-  top:6px;
-  right:10px;
+  position:fixed;
+  top:calc(10px + env(safe-area-inset-top));
+  right:12px;
   display:flex;
   align-items:center;
   gap:12px;
@@ -247,11 +262,6 @@ html.valki-chat-open .valki-login-btn{
 @media (max-width:640px){
   .valki-landing-wrap{
     padding:18px 10px 0;
-  }
-  .valki-hero-actions{
-    position:static;
-    justify-content:flex-end;
-    margin-bottom:10px;
   }
   .valki-hero-logo{ width:32px; height:32px; }
   .valki-login-btn{ font-size:14px; padding:9px 20px; }
@@ -659,7 +669,7 @@ html.valki-chat-open [id*="menu" i]{
   border-top:1px solid rgba(255,255,255,.08);
   background:linear-gradient(to top,#050505,#080808);
   --valki-cookie-reserve: 52px;
-  padding:12px 0 calc(10px + env(safe-area-inset-bottom) + var(--valki-cookie-reserve));
+  padding:12px 0 calc(16px + env(safe-area-inset-bottom) + var(--valki-cookie-reserve));
   width:100%;
   max-width:none;
   margin-top:auto;
@@ -824,26 +834,26 @@ html.valki-chat-open [id*="menu" i]{
 
 /* disclaimer */
 .valki-disclaimer{
-  position:absolute;
-  left:0;
-  right:0;
-  bottom:calc(env(safe-area-inset-bottom) + 6px);
   display:flex;
+  flex-direction:column;
   align-items:center;
   justify-content:center;
-  gap:10px;
+  gap:6px;
   text-align:center;
   font-size:11px;
+  line-height:1.4;
   letter-spacing:.02em;
   color:rgba(200,200,200,.75);
   opacity:.92;
   font-family:var(--valki-font);
+  margin:12px auto 0;
+  padding:0 16px calc(4px + env(safe-area-inset-bottom));
 }
 .valki-disclaimer-button{
   background:none;
   border:none;
   padding:0;
-  margin-top:2px;
+  margin:0;
   font:inherit;
   color:#d0d0d0;
   cursor:pointer;
@@ -1112,49 +1122,51 @@ html.valki-chat-open [id*="menu" i]{
     const container = document.createElement('div');
     container.innerHTML = `<canvas id="valki-bg" aria-hidden="true"></canvas>
 <div class="valki-root" id="valki-root">
-  <!-- Valki Signal Lock -->
-  <div class="valki-signal-lock" id="valki-signal-lock" aria-label="Valki Talki. Web3.">
-    <div class="valki-signal-line" id="line-main">Crypto Stuck?</div>
-    <div class="valki-signal-line muted" id="line-sub">Explained.</div>
-  </div>
-
-  <!-- Landing search -->
-  <div class="valki-landing-wrap">
-    <div class="valki-hero-actions" id="valki-hero-actions">
-      <div class="valki-hero-logo" aria-hidden="true">
-        <img src="https://valki.wiki/blogmedia/Valki%20Talki.jpg" alt="" loading="lazy" />
-      </div>
-      <button class="valki-login-btn" id="valki-hero-login-btn" type="button">Login</button>
+  <div class="valki-landing-shell">
+    <!-- Valki Signal Lock -->
+    <div class="valki-signal-lock" id="valki-signal-lock" aria-label="Valki Talki. Web3.">
+      <div class="valki-signal-line" id="line-main">Crypto Stuck?</div>
+      <div class="valki-signal-line muted" id="line-sub">Explained.</div>
     </div>
 
-    <form id="valki-search-form" class="valki-search-form" autocomplete="off">
-      <div class="valki-search-inner">
-        <span class="valki-search-icon" aria-hidden="true">🔎</span>
-
-        <input
-          id="valki-search-input"
-          class="valki-search-input"
-          type="text"
-          autocomplete="off"
-          placeholder=""
-          aria-label="Ask Valki"
-          enterkeyhint="send"
-        />
-
-        <button class="valki-search-button" type="submit" aria-label="Ask Valki">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 19V5"></path>
-            <path d="M5 12l7-7 7 7"></path>
-          </svg>
-        </button>
+    <!-- Landing search -->
+    <div class="valki-landing-wrap">
+      <div class="valki-hero-actions" id="valki-hero-actions">
+        <div class="valki-hero-logo" aria-hidden="true">
+          <img src="https://valki.wiki/blogmedia/Valki%20Talki.jpg" alt="" loading="lazy" />
+        </div>
+        <button class="valki-login-btn" id="valki-hero-login-btn" type="button">Login</button>
       </div>
-    </form>
-  </div>
 
-  <!-- Badge -->
-  <div class="valki-top-badge" id="valki-top-badge" role="button" tabindex="0" aria-label="Open Valki">
-    <span class="valki-pulse-dot" aria-hidden="true"></span>
-    <span>Valki Talki • <span class="valki-version">v2.0</span></span>
+      <form id="valki-search-form" class="valki-search-form" autocomplete="off">
+        <div class="valki-search-inner">
+          <span class="valki-search-icon" aria-hidden="true">🔎</span>
+
+          <input
+            id="valki-search-input"
+            class="valki-search-input"
+            type="text"
+            autocomplete="off"
+            placeholder=""
+            aria-label="Ask Valki"
+            enterkeyhint="send"
+          />
+
+          <button class="valki-search-button" type="submit" aria-label="Ask Valki">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 19V5"></path>
+              <path d="M5 12l7-7 7 7"></path>
+            </svg>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Badge -->
+    <div class="valki-top-badge" id="valki-top-badge" role="button" tabindex="0" aria-label="Open Valki">
+      <span class="valki-pulse-dot" aria-hidden="true"></span>
+      <span>Valki Talki • <span class="valki-version">v2.0</span></span>
+    </div>
   </div>
 
   <!-- Chat overlay -->
@@ -1205,7 +1217,7 @@ html.valki-chat-open [id*="menu" i]{
               id="valki-chat-input"
               class="valki-chat-input"
               rows="1"
-              placeholder=""
+              placeholder="Message Valki (text optional with images)"
               aria-label="Message Valki"
               enterkeyhint="send"
             ></textarea>
@@ -2479,7 +2491,7 @@ html.valki-chat-open [id*="menu" i]{
       dataUrl: a.dataUrl
     }));
 
-    const messageText = q || "";
+    const messageText = q || (hasImages ? "[image]" : "");
 
     await addMessage({ type:"user", text:messageText, images: imagesForSend });
 
