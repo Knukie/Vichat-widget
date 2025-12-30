@@ -45,6 +45,10 @@
   --text-main:#f7f7f7;
   --text-muted:#a5a5a5;
 
+  /* Viewport metrics (updated via VisualViewport) */
+  --vvh: 100dvh;
+  --vvb: 0px;
+
   --btn-fill:#d6d6d6;
   --btn-hover-1:#f0f0f0;
   --btn-hover-2:#bebebe;
@@ -531,7 +535,7 @@ html.valki-chat-open .valki-login-btn{
 .valki-modal{
   width:100vw;
   max-width:none;
-  height:100dvh;
+  height:var(--vvh, 100dvh);
   max-height:none;
   min-height:0;
 
@@ -774,7 +778,7 @@ html.valki-chat-open [id*="menu" i]{
   border-top:1px solid rgba(255,255,255,.08);
   background:linear-gradient(to top,#050505,#080808);
   --valki-cookie-reserve: 0px !important;
-  padding:12px 0 calc(8px + env(safe-area-inset-bottom)) !important;
+  padding:12px 0 calc(8px + env(safe-area-inset-bottom) + var(--vvb, 0px)) !important;
   width:100%;
   margin-top:auto;
 }
@@ -1463,6 +1467,7 @@ html.valki-chat-open [id*="menu" i]{
      DOM
   ================================ */
   const $ = (id)=>document.getElementById(id);
+  const docStyle = document.documentElement && document.documentElement.style;
 
   const bgCanvas    = $("valki-bg");
   const root        = $("valki-root");
@@ -1525,6 +1530,8 @@ html.valki-chat-open [id*="menu" i]{
   ];
 
   if (required.some(el => !el)) return;
+
+  updateViewportVars();
 
   /* ===============================
      Valki animated background
@@ -1711,6 +1718,26 @@ html.valki-chat-open [id*="menu" i]{
   function cleanText(v){ return String(v ?? "").replace(/\\u0000/g,"").trim(); }
   function safeJsonParse(s, fallback){ try{ return JSON.parse(s); } catch { return fallback; } }
   function parsePx(v){ const n = parseFloat(String(v||"").replace("px","")); return Number.isFinite(n) ? n : 0; }
+
+  function updateViewportVars(){
+    if (!docStyle) return;
+
+    const vv = window.visualViewport;
+    const layoutHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    let height = layoutHeight;
+    let bottomGap = 0;
+
+    if (vv){
+      height = vv.height;
+      bottomGap = Math.max(0, layoutHeight - (vv.height + (vv.offsetTop || 0)));
+    }
+
+    const safeHeight = Math.max(0, Math.round(height || layoutHeight));
+    const safeBottom = Math.max(0, Math.round(bottomGap));
+
+    docStyle.setProperty("--vvh", safeHeight + "px");
+    docStyle.setProperty("--vvb", safeBottom + "px");
+  }
 
   function isNearBottom(el, px=90){
     return (el.scrollHeight - el.scrollTop - el.clientHeight) < px;
@@ -2150,14 +2177,21 @@ html.valki-chat-open [id*="menu" i]{
   }
 
   function openOverlay(){
+    if (document.activeElement === searchInput){
+      searchInput.blur();
+    }
+
+    updateViewportVars();
     setVisible(overlay, true);
     lockBodyScroll();
 
-    setTimeout(()=>{
-      scrollToBottom(true);
-      try{ chatInput.focus({ preventScroll:true }); } catch { chatInput.focus(); }
-      clampComposer();
-    }, 60);
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        try{ chatInput.focus({ preventScroll:true }); } catch { chatInput.focus(); }
+        scrollToBottom(true);
+        clampComposer();
+      });
+    });
   }
 
   function closeOverlay(){
@@ -2707,6 +2741,7 @@ html.valki-chat-open [id*="menu" i]{
     const q = cleanText(searchInput.value);
     if (!q) return;
     searchInput.value = "";
+    searchInput.blur();
     openOverlay();
     askValki(q);
   });
@@ -2792,10 +2827,20 @@ html.valki-chat-open [id*="menu" i]{
   /* ===============================
      Resize / fonts
   ================================ */
-  window.addEventListener("resize", ()=>{
+  function handleViewportResize(){
+    updateViewportVars();
     if (document.activeElement === chatInput) clampComposer();
     scrollToBottom(false);
-  });
+  }
+
+  window.addEventListener("resize", handleViewportResize, { passive:true });
+  window.addEventListener("orientationchange", handleViewportResize, { passive:true });
+
+  if (window.visualViewport){
+    window.visualViewport.addEventListener("resize", updateViewportVars, { passive:true });
+    window.visualViewport.addEventListener("scroll", updateViewportVars, { passive:true });
+  }
+
   if (document.fonts && document.fonts.ready){
     document.fonts.ready.then(()=>{
       if (document.activeElement === chatInput) clampComposer();
