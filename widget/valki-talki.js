@@ -95,25 +95,59 @@ html,body{
   padding:0;
   min-height:100vh;
   box-sizing:border-box;
-  display:flex;
-  justify-content:center;
-  flex-direction:column;
-  align-items:center;
   position:relative;
   z-index:1;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
 }
+
+/* De landing container blijft in het midden */
 .valki-landing-shell{
   width:100%;
   display:flex;
   flex-direction:column;
   align-items:center;
 }
+
+/* Tablet/desktop zoals je al had (werkt prima op mobiel/iPad) */
 @media (min-width: 641px){
   .valki-landing-shell{
     min-height:100vh;
     justify-content:center;
     padding:10px 0 24px;
     box-sizing:border-box;
+  }
+}
+
+/* ===============================
+   DESKTOP ONLY (grote schermen)
+   - signal/hero mag breder
+   - search blijft smal
+================================*/
+@media (min-width: 1024px){
+  /* Center écht de landing stack */
+  .valki-landing-shell{
+    min-height:100vh;
+    justify-content:center;
+    padding:0 0 36px;
+  }
+
+  /* Signal mag breder (full feel) */
+  .valki-signal-lock{
+    max-width:1200px;   /* breder dan 960 */
+    padding:0 24px;
+  }
+
+  /* Landing wrap niet "duwen" naar beneden */
+  .valki-landing-wrap{
+    padding-top:24px;   /* i.p.v. 40px */
+  }
+
+  /* Search blijft smal zoals ChatGPT */
+  .valki-search-form{
+    max-width:720px; /* blijft smal */
   }
 }
 
