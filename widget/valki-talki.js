@@ -264,10 +264,10 @@ html,body{
 .valki-hero-logo{
   width:36px;
   height:36px;
-  border-radius:12px;
-  background:radial-gradient(circle at 35% 35%, #f7f7f7 0, #d8d8d8 40%, #8f8f8f 85%);
-  border:1px solid rgba(255,255,255,.22);
-  box-shadow:0 12px 28px rgba(0,0,0,.65), 0 0 0 1px rgba(0,0,0,.45) inset;
+  border-radius:50%;
+  background:transparent;
+  border:none;
+  box-shadow:0 10px 24px rgba(0,0,0,.55);
   display:flex;
   align-items:center;
   justify-content:center;
@@ -278,7 +278,7 @@ html,body{
   width:100%;
   height:100%;
   object-fit:cover;
-  border-radius:inherit;
+  border-radius:50%;
   display:block;
 }
 
