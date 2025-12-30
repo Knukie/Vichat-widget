@@ -109,6 +109,7 @@ html,body{
   /* Zorg dat de landing netjes de viewport vult */
   .valki-landing-shell{
     min-height:100vh;
+    min-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     justify-content:center;
   }
 }
@@ -155,6 +156,7 @@ html,body{
   margin:0;
   padding:0;
   min-height:100vh;
+  min-height:100dvh;
   box-sizing:border-box;
   position:relative;
   z-index:1;
@@ -171,14 +173,18 @@ html,body{
   display:flex;
   flex-direction:column;
   align-items:center;
+  justify-content:center;
+  min-height:100vh;
+  min-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  padding:calc(18px + env(safe-area-inset-top)) 0 calc(26px + env(safe-area-inset-bottom));
+  box-sizing:border-box;
+  gap:18px;
 }
 
 /* Tablet/desktop zoals je al had (werkt prima op mobiel/iPad) */
 @media (min-width: 641px){
   .valki-landing-shell{
-    min-height:100vh;
-    justify-content:center;
-    padding:10px 0 24px;
+    padding:calc(20px + env(safe-area-inset-top)) 0 calc(32px + env(safe-area-inset-bottom));
     box-sizing:border-box;
   }
 }
@@ -191,9 +197,7 @@ html,body{
 @media (min-width: 1024px){
   /* Center écht de landing stack */
   .valki-landing-shell{
-    min-height:100vh;
-    justify-content:center;
-    padding:0 0 36px;
+    padding:calc(24px + env(safe-area-inset-top)) 0 calc(40px + env(safe-area-inset-bottom));
   }
 
   /* Signal mag breder (full feel) */
@@ -245,7 +249,7 @@ html,body{
   width:100%;
   max-width:760px;
   margin:0 auto;
-  padding:40px 10px 0;
+  padding:24px 10px 0;
   box-sizing:border-box;
   position:relative;
 }
@@ -357,7 +361,7 @@ html.valki-chat-open .valki-login-btn{
 
 @media (max-width:640px){
   .valki-landing-wrap{
-    padding:18px 10px 0;
+    padding:16px 10px 0;
   }
   .valki-hero-logo{ width:32px; height:32px; }
   .valki-login-btn{ font-size:14px; padding:9px 20px; }
