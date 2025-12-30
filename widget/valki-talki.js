@@ -45,10 +45,6 @@
   --text-main:#f7f7f7;
   --text-muted:#a5a5a5;
 
-  /* Viewport metrics (updated via VisualViewport) */
-  --vvh: 100dvh;
-  --vvb: 0px;
-
   --btn-fill:#d6d6d6;
   --btn-hover-1:#f0f0f0;
   --btn-hover-2:#bebebe;
@@ -535,7 +531,7 @@ html.valki-chat-open .valki-login-btn{
 .valki-modal{
   width:100vw;
   max-width:none;
-  height:var(--vvh, 100dvh);
+  height:100dvh;
   max-height:none;
   min-height:0;
 
@@ -778,7 +774,7 @@ html.valki-chat-open [id*="menu" i]{
   border-top:1px solid rgba(255,255,255,.08);
   background:linear-gradient(to top,#050505,#080808);
   --valki-cookie-reserve: 0px !important;
-  padding:12px 0 calc(8px + env(safe-area-inset-bottom) + var(--vvb, 0px)) !important;
+  padding:12px 0 calc(8px + env(safe-area-inset-bottom)) !important;
   width:100%;
   margin-top:auto;
 }
@@ -1531,8 +1527,6 @@ html.valki-chat-open [id*="menu" i]{
 
   if (required.some(el => !el)) return;
 
-  updateViewportVars();
-
   /* ===============================
      Valki animated background
   ================================*/
@@ -1719,24 +1713,30 @@ html.valki-chat-open [id*="menu" i]{
   function safeJsonParse(s, fallback){ try{ return JSON.parse(s); } catch { return fallback; } }
   function parsePx(v){ const n = parseFloat(String(v||"").replace("px","")); return Number.isFinite(n) ? n : 0; }
 
-  function updateViewportVars(){
-    if (!docStyle) return;
+  const DEBUG = !!window.__VALKI_DEBUG__;
+  const overlayCleanupTimers = new WeakMap();
 
-    const vv = window.visualViewport;
-    const layoutHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-    let height = layoutHeight;
-    let bottomGap = 0;
-
-    if (vv){
-      height = vv.height;
-      bottomGap = Math.max(0, layoutHeight - (vv.height + (vv.offsetTop || 0)));
-    }
-
-    const safeHeight = Math.max(0, Math.round(height || layoutHeight));
-    const safeBottom = Math.max(0, Math.round(bottomGap));
-
-    docStyle.setProperty("--vvh", safeHeight + "px");
-    docStyle.setProperty("--vvb", safeBottom + "px");
+  function nowIso(){ return new Date().toISOString(); }
+  function describeEl(el){
+    if (!el) return null;
+    const cs = window.getComputedStyle ? getComputedStyle(el) : null;
+    return {
+      id: el.id || el.className || el.tagName,
+      display: el.style.display || (cs && cs.display),
+      opacity: el.style.opacity || (cs && cs.opacity),
+      classList: Array.from(el.classList || []),
+      ariaHidden: el.getAttribute("aria-hidden"),
+      ts: nowIso()
+    };
+  }
+  function logDebug(label, el, extra){
+    if (!DEBUG) return;
+    const payload = Object.assign(
+      { label, ts: nowIso() },
+      el ? { overlay: describeEl(el) } : {},
+      extra || {}
+    );
+    console.log("[VALKI][overlay]", payload);
   }
 
   function isNearBottom(el, px=90){
@@ -1758,12 +1758,82 @@ html.valki-chat-open [id*="menu" i]{
     return prefix + "-" + Math.random().toString(16).slice(2) + Date.now().toString(16);
   }
 
-  function setVisible(el, on){
+  const IS_IOS = /iP(hone|od|ad)/i.test(navigator.userAgent || "");
+  let iosViewportHandler = null;
+
+  function currentKeyboardOffset(){
+    if (!window.visualViewport) return 0;
+    const layoutHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    return Math.max(0, layoutHeight - (window.visualViewport.height + (window.visualViewport.offsetTop || 0)));
+  }
+
+  function applyIOSKeyboardInsets(activeEl){
+    if (!IS_IOS || !window.visualViewport || !chatForm) return;
+    const gap = currentKeyboardOffset();
+    chatForm.style.paddingBottom = `calc(8px + env(safe-area-inset-bottom) + ${gap}px)`;
+    scrollToBottom(true);
+    try{
+      if (activeEl && activeEl.scrollIntoView) activeEl.scrollIntoView({ block:"nearest" });
+    }catch{}
+    logDebug("iosKeyboard:inset", null, { gap });
+  }
+
+  function resetIOSKeyboardInsets(){
+    if (!chatForm) return;
+    chatForm.style.paddingBottom = "calc(8px + env(safe-area-inset-bottom))";
+    logDebug("iosKeyboard:reset", null, {});
+  }
+
+  function bindIOSKeyboardListeners(activeEl){
+    if (!IS_IOS || !window.visualViewport) return;
+    if (iosViewportHandler) return;
+    iosViewportHandler = ()=> applyIOSKeyboardInsets(activeEl || document.activeElement);
+    window.visualViewport.addEventListener("resize", iosViewportHandler, { passive:true });
+    window.visualViewport.addEventListener("scroll", iosViewportHandler, { passive:true });
+    iosViewportHandler();
+  }
+
+  function unbindIOSKeyboardListeners(){
+    if (!IS_IOS || !window.visualViewport) return;
+    if (!iosViewportHandler) return;
+    window.visualViewport.removeEventListener("resize", iosViewportHandler);
+    window.visualViewport.removeEventListener("scroll", iosViewportHandler);
+    iosViewportHandler = null;
+    resetIOSKeyboardInsets();
+  }
+
+  function forceOverlayHidden(el, reason){
     if (!el) return;
-    el.style.display = on ? "flex" : "none";
-    el.setAttribute("aria-hidden", on ? "false" : "true");
-    if (on) requestAnimationFrame(()=> el.classList.add("is-visible"));
-    else el.classList.remove("is-visible");
+    el.classList.remove("is-visible");
+    el.setAttribute("aria-hidden","true");
+    el.style.display = "none";
+    overlayCleanupTimers.delete(el);
+    logDebug("force-hide", el, { reason });
+  }
+
+  function setVisible(el, on, reason){
+    if (!el) return;
+    const existing = overlayCleanupTimers.get(el);
+    if (existing) clearTimeout(existing);
+
+    if (on){
+      el.style.display = "flex";
+      el.setAttribute("aria-hidden","false");
+      requestAnimationFrame(()=>{
+        el.classList.add("is-visible");
+        logDebug("is-visible:add", el, { reason });
+      });
+      logDebug("show", el, { reason });
+      return;
+    }
+
+    el.setAttribute("aria-hidden","true");
+    el.classList.remove("is-visible");
+    logDebug("is-visible:remove", el, { reason });
+    logDebug("hide", el, { reason });
+
+    const timer = setTimeout(()=> forceOverlayHidden(el, reason || "hide-fallback"), 300);
+    overlayCleanupTimers.set(el, timer);
   }
 
   /* ===============================
@@ -2161,6 +2231,7 @@ html.valki-chat-open [id*="menu" i]{
     document.body.style.overflow = "hidden";
     document.body.style.touchAction = "none";
     document.documentElement.classList.add("valki-chat-open");
+    logDebug("lockBodyScroll", overlay, { htmlClassList: Array.from(document.documentElement.classList || []), scrollY:y });
   }
   function unlockBodyScroll(){
     const y = parseInt(document.body.dataset.valkiScrollY || "0", 10);
@@ -2173,15 +2244,16 @@ html.valki-chat-open [id*="menu" i]{
     document.body.style.touchAction = "";
     delete document.body.dataset.valkiScrollY;
     document.documentElement.classList.remove("valki-chat-open");
+    logDebug("unlockBodyScroll", overlay, { htmlClassList: Array.from(document.documentElement.classList || []), scrollY:y });
     window.scrollTo({ top:y, behavior:"auto" });
   }
 
   function openOverlay(){
+    logDebug("openOverlay:start", overlay);
     if (document.activeElement === searchInput){
       searchInput.blur();
     }
 
-    updateViewportVars();
     setVisible(overlay, true);
     lockBodyScroll();
 
@@ -2195,12 +2267,10 @@ html.valki-chat-open [id*="menu" i]{
   }
 
   function closeOverlay(){
-    overlay.classList.remove("is-visible");
-    overlay.setAttribute("aria-hidden","true");
-    setTimeout(()=>{
-      overlay.style.display="none";
-      unlockBodyScroll();
-    }, 220);
+    logDebug("closeOverlay:start", overlay);
+    setVisible(overlay, false, "closeOverlay");
+    unbindIOSKeyboardListeners();
+    unlockBodyScroll();
   }
 
   /* ===============================
@@ -2345,6 +2415,7 @@ html.valki-chat-open [id*="menu" i]{
   let authHard = false;
 
   function openAuthOverlay({ hard }){
+    logDebug("openAuthOverlay:start", authOverlay, { hard });
     authHard = !!hard;
 
     authTitle.textContent = authHard ? "Login required" : "Log in to continue";
@@ -2358,7 +2429,7 @@ html.valki-chat-open [id*="menu" i]{
 
     authDismiss.style.display = authHard ? "none" : "inline-block";
 
-    setVisible(authOverlay, true);
+    setVisible(authOverlay, true, "openAuthOverlay");
 
     if (authHard){
       chatInput.disabled = true;
@@ -2371,28 +2442,32 @@ html.valki-chat-open [id*="menu" i]{
 
   function closeAuthOverlay(){
     if (authHard) return;
-    authOverlay.classList.remove("is-visible");
-    setTimeout(()=>{ authOverlay.style.display="none"; }, 180);
+    logDebug("closeAuthOverlay:start", authOverlay);
+    setVisible(authOverlay, false, "closeAuthOverlay");
   }
 
   /* ===============================
      Confirm delete-all overlay
   ================================ */
-  function openConfirm(){ setVisible(confirmOverlay, true); }
+  function openConfirm(){
+    logDebug("openConfirm:start", confirmOverlay);
+    setVisible(confirmOverlay, true, "openConfirm");
+  }
   function closeConfirm(){
-    confirmOverlay.classList.remove("is-visible");
-    confirmOverlay.setAttribute("aria-hidden","true");
-    setTimeout(()=>{ confirmOverlay.style.display="none"; }, 180);
+    logDebug("closeConfirm:start", confirmOverlay);
+    setVisible(confirmOverlay, false, "closeConfirm");
   }
 
   /* ===============================
      Logout overlay (custom)
   ================================ */
-  function openLogoutPrompt(){ setVisible(logoutOverlay, true); }
+  function openLogoutPrompt(){
+    logDebug("openLogoutPrompt:start", logoutOverlay);
+    setVisible(logoutOverlay, true, "openLogoutPrompt");
+  }
   function closeLogoutPrompt(){
-    logoutOverlay.classList.remove("is-visible");
-    logoutOverlay.setAttribute("aria-hidden","true");
-    setTimeout(()=>{ logoutOverlay.style.display="none"; }, 180);
+    logDebug("closeLogoutPrompt:start", logoutOverlay);
+    setVisible(logoutOverlay, false, "closeLogoutPrompt");
   }
 
   logoutNo.addEventListener("click", closeLogoutPrompt);
@@ -2474,8 +2549,7 @@ html.valki-chat-open [id*="menu" i]{
     setAttachmentUiDisabled(false);
 
     authHard = false;
-    authOverlay.classList.remove("is-visible");
-    setTimeout(()=>{ authOverlay.style.display="none"; }, 180);
+    setVisible(authOverlay, false, "auth-message-close");
 
     await importGuestIntoAccount(data.token);
     await loadLoggedInMessagesToUI({ forceOpen:true });
@@ -2736,6 +2810,14 @@ html.valki-chat-open [id*="menu" i]{
   /* ===============================
      Search + chat form events
   ================================ */
+  function handleIOSInputFocus(e){ bindIOSKeyboardListeners(e.target); }
+  function handleIOSInputBlur(){ unbindIOSKeyboardListeners(); }
+
+  chatInput.addEventListener("focus", handleIOSInputFocus);
+  chatInput.addEventListener("blur", handleIOSInputBlur);
+  searchInput.addEventListener("focus", handleIOSInputFocus);
+  searchInput.addEventListener("blur", handleIOSInputBlur);
+
   searchForm.addEventListener("submit", (e)=>{
     e.preventDefault();
     const q = cleanText(searchInput.value);
@@ -2828,18 +2910,12 @@ html.valki-chat-open [id*="menu" i]{
      Resize / fonts
   ================================ */
   function handleViewportResize(){
-    updateViewportVars();
     if (document.activeElement === chatInput) clampComposer();
     scrollToBottom(false);
   }
 
   window.addEventListener("resize", handleViewportResize, { passive:true });
   window.addEventListener("orientationchange", handleViewportResize, { passive:true });
-
-  if (window.visualViewport){
-    window.visualViewport.addEventListener("resize", updateViewportVars, { passive:true });
-    window.visualViewport.addEventListener("scroll", updateViewportVars, { passive:true });
-  }
 
   if (document.fonts && document.fonts.ready){
     document.fonts.ready.then(()=>{
