@@ -1735,7 +1735,7 @@ html.valki-chat-open header.valki-site-header{
   function applyIOSKeyboardInsets(activeEl){
     if (!IS_IOS || !window.visualViewport || !chatForm) return;
     const gap = currentKeyboardOffset();
-    chatForm.style.paddingBottom = `calc(8px + env(safe-area-inset-bottom) + ${gap}px)`;
+    chatForm.style.paddingBottom = "calc(8px + env(safe-area-inset-bottom) + " + gap + "px)";
     scrollToBottom(true);
     try{
       if (activeEl && activeEl.scrollIntoView) activeEl.scrollIntoView({ block:"nearest" });
