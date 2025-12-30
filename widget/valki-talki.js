@@ -720,8 +720,8 @@ html.valki-chat-open [id*="menu" i]{
 .valki-chat-form{
   border-top:1px solid rgba(255,255,255,.08);
   background:linear-gradient(to top,#050505,#080808);
-  --valki-cookie-reserve: 52px;
-  padding:12px 0 calc(16px + env(safe-area-inset-bottom) + var(--valki-cookie-reserve));
+  --valki-cookie-reserve: 0px !important;
+  padding:12px 0 calc(8px + env(safe-area-inset-bottom)) !important;
   width:100%;
   margin-top:auto;
 }
@@ -895,8 +895,8 @@ html.valki-chat-open [id*="menu" i]{
   color:rgba(200,200,200,.75);
   opacity:.92;
   font-family:var(--valki-font);
-  margin:12px auto 0;
-  padding:0 16px calc(4px + env(safe-area-inset-bottom));
+  margin:4px auto 0 !important;
+  padding:0 16px env(safe-area-inset-bottom) !important;
 }
 .valki-disclaimer-button{
   background:none;
