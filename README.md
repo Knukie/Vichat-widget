@@ -1,14 +1,36 @@
-# valki-talki-widget
-Frontend
+# Valki Talki Widget
 
-## Legacy source (important)
+Self-injecting Valki Talki chat widget served as a single script for easy embedding.
 
-The file `legacy/valki-talki-single.html` contains the original
-single-file Valki Talki widget as it is currently used in production.
+## Legacy source (reference)
 
-This file is NOT used directly at runtime.
-It exists as a reference source for refactors and automated PRs
-(e.g. Codex / AI agents).
+- `legacy/valki-talki-single.html` holds the original production-ready single-file widget.
+- It is the source of truth for HTML structure, CSS, and JavaScript behavior used by the generated widget script.
 
-The goal is to convert this file into a self-injecting widget:
-`widget/valki-talki.js`
+## Local development
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Start the local server:
+   ```bash
+   npm start
+   ```
+   The server responds to:
+   - `GET /` → `OK` (health check)
+   - `GET /valki-talki.js` → serves the widget script with appropriate headers
+
+## Railway deployment notes
+
+- No database or secrets required; the service is frontend-only.
+- Deploy the repository to Railway using the default Node runtime and `npm start`.
+- The Express server serves `widget/valki-talki.js` directly for embedding.
+
+## Embed snippet
+
+Add this to any HTML page (update the host to your Railway deployment URL):
+
+```html
+<script src="https://YOUR-RAILWAY-URL/valki-talki.js" defer></script>
+```

@@ -1,12 +1,15 @@
-<!-- ===================== VALKI TALKI — SINGLE-FILE WIDGET (FULLSCREEN + IMAGE UPLOAD)
-- Fullscreen chat modal: 100% width/height on all devices (uses 100dvh + safe-area)
-- JPEG/PNG upload (up to 4, 5MB each) with thumbnail tray + remove
-- Composer auto-grow (up to 4 lines) + nicer wrapping like ChatGPT
-- Keeps your existing OAuth/guest/import/delete flows intact
-===================== -->
+(() => {
+  if (window.__VALKI_TALKI_LOADED__ || document.getElementById('valki-root')) {
+    return;
+  }
+  window.__VALKI_TALKI_LOADED__ = true;
 
-<style>
-:root{
+  const init = () => {
+    if (document.getElementById('valki-root')) return;
+
+    const styleTag = document.createElement('style');
+    styleTag.setAttribute('data-valki-talki', '');
+    styleTag.textContent = `:root{
   --bg:#050505;
   --glass-border: rgba(255,255,255,.16);
   --text-main:#f7f7f7;
@@ -865,10 +868,11 @@ html.valki-chat-open [id*="menu" i]{
   .valki-chat-inner{ padding:8px 10px; }
   .valki-chat-send{ width:38px; height:38px; }
   .valki-chat-attach{ width:38px; height:38px; }
-}
-</style>
+}`;
+    (document.head || document.getElementsByTagName('head')[0] || document.documentElement).appendChild(styleTag);
 
-<div class="valki-root" id="valki-root">
+    const container = document.createElement('div');
+    container.innerHTML = `<div class="valki-root" id="valki-root">
   <!-- Landing search -->
   <form id="valki-search-form" class="valki-search-form" autocomplete="off">
     <div class="valki-search-inner">
@@ -1038,10 +1042,13 @@ html.valki-chat-open [id*="menu" i]{
       </div>
     </div>
   </div>
-</div>
+</div>`;
+    const root = container.firstElementChild;
+    if (!root) return;
+    document.body.appendChild(root);
 
-<script>
-(function(){
+    const scriptTag = document.createElement('script');
+    scriptTag.textContent = `(function(){
   "use strict";
 
   /* ===============================
@@ -1143,7 +1150,7 @@ html.valki-chat-open [id*="menu" i]{
   /* ===============================
      Helpers
   ================================ */
-  function cleanText(v){ return String(v ?? "").replace(/\u0000/g,"").trim(); }
+  function cleanText(v){ return String(v ?? "").replace(/\\u0000/g,"").trim(); }
   function safeJsonParse(s, fallback){ try{ return JSON.parse(s); } catch { return fallback; } }
   function parsePx(v){ const n = parseFloat(String(v||"").replace("px","")); return Number.isFinite(n) ? n : 0; }
 
@@ -1368,7 +1375,7 @@ html.valki-chat-open [id*="menu" i]{
       .replace(/&/g,"&amp;")
       .replace(/</g,"&lt;")
       .replace(/>/g,"&gt;")
-      .replace(/\n/g,"<br>");
+      .replace(/\\n/g,"<br>");
   }
 
   function hardenLinks(containerEl){
@@ -1702,7 +1709,7 @@ async function addMessage({ type, text, images }){
     const popup = window.open(
       url,
       popupName,
-      `popup=yes,width=${w},height=${h},left=${Math.round(x)},top=${Math.round(y)}`
+      \`popup=yes,width=\${w},height=\${h},left=\${Math.round(x)},top=\${Math.round(y)}\`
     );
 
     if (!popup){
@@ -1795,11 +1802,12 @@ async function addMessage({ type, text, images }){
       clearMessagesUI();
       for (const m of j.messages){
         const type = (m.role === "assistant") ? "bot" : "user";
-        await addMessage({
-  type:"user",
-  text:q,
-  images: attachments.map(a => a.dataUrl)
-});
+        const text = typeof m.message === "string"
+          ? m.message
+          : (typeof m.content === "string" ? m.content : "");
+        const images = Array.isArray(m.images) ? m.images.map(x => String(x || "")) : undefined;
+        await addMessage({ type, text, images });
+      }
 
       scrollToBottom(true);
       updateDeleteButtonVisibility();
@@ -2131,5 +2139,13 @@ async function addMessage({ type, text, images }){
     updateDeleteButtonVisibility();
     clampComposer();
   })();
+})();`;
+    document.body.appendChild(scriptTag);
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
 })();
-</script>
