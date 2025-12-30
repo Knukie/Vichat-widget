@@ -257,6 +257,11 @@ html,body{
   transform:translate3d(0,0,0);
 }
 
+.valki-overlay{
+  align-items:stretch;
+  justify-content:center;
+}
+
 .valki-overlay.is-visible,
 .valki-auth-overlay.is-visible,
 .valki-confirm-overlay.is-visible,
@@ -278,13 +283,17 @@ html,body{
   border:none;
   box-shadow:none;
   overflow:hidden;
+  box-sizing:border-box;
+  min-width:0;
+  min-height:0;
 
   opacity:0;
   transform:translateY(10px);
   transition:.22s ease-out;
   display:flex;
   flex-direction:column;
-  align-items:center;
+  align-items:stretch;
+  justify-content:flex-start;
   padding:0 16px;
 }
 .valki-overlay.is-visible .valki-modal{
@@ -340,7 +349,7 @@ html.valki-chat-open [id*="menu" i]{
   background:linear-gradient(to bottom,#111111,#0b0b0b);
   gap:10px;
   width:100%;
-  max-width:980px;
+  max-width:none;
 }
 
 .valki-header-left{ display:flex; align-items:center; gap:10px; min-width:0; }
@@ -420,13 +429,14 @@ html.valki-chat-open [id*="menu" i]{
   scrollbar-width:thin;
   scrollbar-color: rgba(255,255,255,.25) transparent;
   width:100%;
-  max-width:980px;
+  max-width:none;
   box-sizing:border-box;
   display:flex;
   justify-content:center;
 }
 .valki-messages-inner{
-  max-width:720px;
+  width:100%;
+  max-width:none;
   margin:0 auto;
   padding:0 16px 12px;
 }
@@ -501,15 +511,18 @@ html.valki-chat-open [id*="menu" i]{
 .valki-chat-form{
   border-top:1px solid rgba(255,255,255,.08);
   background:linear-gradient(to top,#050505,#080808);
-  padding:12px 0 calc(10px + env(safe-area-inset-bottom));
+  --valki-cookie-reserve: 52px;
+  padding:12px 0 calc(10px + env(safe-area-inset-bottom) + var(--valki-cookie-reserve));
   width:100%;
-  max-width:980px;
+  max-width:none;
+  margin-top:auto;
 }
 .valki-chat-form-inner{
-  max-width:760px;
+  max-width:none;
   margin:0 auto;
   padding:0 16px;
   box-sizing:border-box;
+  position:relative;
 }
 
 /* Message pill becomes more ChatGPT-ish on grow */
@@ -627,7 +640,7 @@ html.valki-chat-open [id*="menu" i]{
 
 /* Attachments tray */
 .valki-attachments{
-  max-width:760px;
+  max-width:none;
   margin:8px auto 0;
   display:flex;
   gap:10px;
@@ -664,13 +677,19 @@ html.valki-chat-open [id*="menu" i]{
 
 /* disclaimer */
 .valki-disclaimer{
-  margin-top:6px;
-  margin-bottom:8px;
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:calc(env(safe-area-inset-bottom) + 6px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
   text-align:center;
   font-size:11px;
   letter-spacing:.02em;
-  color:rgba(200,200,200,.6);
-  opacity:.85;
+  color:rgba(200,200,200,.75);
+  opacity:.92;
   font-family:var(--valki-font);
 }
 .valki-disclaimer-button{
@@ -681,6 +700,7 @@ html.valki-chat-open [id*="menu" i]{
   font:inherit;
   color:#d0d0d0;
   cursor:pointer;
+  pointer-events:auto;
 }
 .valki-disclaimer-button:hover{ text-decoration:underline; }
 
@@ -892,6 +912,8 @@ html.valki-chat-open [id*="menu" i]{
   border-radius:14px;
   margin-top:8px;
   border:1px solid rgba(255,255,255,.10);
+  cursor:pointer;
+  object-fit:contain;
 }
 .valki-msg-bubble .valki-img-grid{
   display:grid;
@@ -912,14 +934,6 @@ html.valki-chat-open [id*="menu" i]{
   .valki-chat-inner{ padding:8px 10px; }
   .valki-chat-send{ width:38px; height:38px; }
   .valki-chat-attach{ width:38px; height:38px; }
-}
-
-.valki-root.valki-hero-mode .valki-messages{
-  display:none;
-}
-.valki-root.valki-hero-mode .valki-chat-form{
-  border-top:none;
-  padding-top:8px;
 }
 }`;
     (document.head || document.getElementsByTagName('head')[0] || document.documentElement).appendChild(styleTag);
@@ -1410,8 +1424,8 @@ html.valki-chat-open [id*="menu" i]{
   function updateHeroState(){
     const hero = !hasAnyRealMessages();
     if (messagesEl){
-      messagesEl.style.display = hero ? "none" : "";
-      messagesEl.setAttribute("aria-hidden", hero ? "true" : "false");
+      messagesEl.style.display = "";
+      messagesEl.setAttribute("aria-hidden", "false");
     }
     if (root){
       root.classList.toggle("valki-hero-mode", hero);
@@ -1468,7 +1482,7 @@ html.valki-chat-open [id*="menu" i]{
         .map(x => ({
           type: x.type === "bot" ? "bot" : "user",
           text: (typeof x.text === "string") ? x.text : "",
-          images: Array.isArray(x.images) ? x.images : undefined
+          images: Array.isArray(x.images) ? x.images : (Array.isArray(x.attachments) ? x.attachments : undefined)
         }))
         .filter(x => (x.text && x.text.length) || (Array.isArray(x.images) && x.images.length));
     }catch{
@@ -1582,6 +1596,11 @@ html.valki-chat-open [id*="menu" i]{
         img.src = imgData.src;
         img.alt = imgData.alt || "uploaded image";
         img.loading = "lazy";
+        img.addEventListener("click", ()=>{
+          try{
+            window.open(imgData.src, "_blank", "noopener,noreferrer");
+          }catch{}
+        });
         grid.appendChild(img);
       }
       bubble.appendChild(grid);
@@ -1724,6 +1743,15 @@ html.valki-chat-open [id*="menu" i]{
   ================================ */
   let attachments = []; // { id, name, type, dataUrl }
 
+  async function showAttachmentError(msg){
+    if (!msg) return;
+    await addMessage({ type:"bot", text:msg });
+    if (!isLoggedIn()){
+      guestHistory.push({ type:"bot", text:msg });
+      saveGuestHistory(guestHistory);
+    }
+  }
+
   function showAttachTray(){
     if (!attachments.length){
       attachTray.style.display = "none";
@@ -1767,17 +1795,30 @@ html.valki-chat-open [id*="menu" i]{
 
   async function addFiles(fileList){
     const files = Array.from(fileList || []);
+    const errors = new Set();
     for (const f of files){
-      if (attachments.length >= MAX_FILES) break;
+      if (attachments.length >= MAX_FILES){
+        errors.add("Image limit reached (max 4).");
+        break;
+      }
 
       const t = String(f.type || "").toLowerCase();
       const ok = (t === "image/jpeg" || t === "image/png" || t === "image/jpg");
-      if (!ok) continue;
+      if (!ok){
+        errors.add(`${f.name || "File"} is not a supported image (JPEG/PNG).`);
+        continue;
+      }
 
-      if (f.size > MAX_BYTES) continue;
+      if (f.size > MAX_BYTES){
+        errors.add(`${f.name || "Image"} is too large (max 5MB).`);
+        continue;
+      }
 
       const dataUrl = await readFileAsDataURL(f).catch(()=> "");
-      if (!dataUrl) continue;
+      if (!dataUrl){
+        errors.add(`Could not load ${f.name || "image"}.`);
+        continue;
+      }
 
       attachments.push({
         id: genId("att"),
@@ -1787,6 +1828,11 @@ html.valki-chat-open [id*="menu" i]{
       });
     }
     showAttachTray();
+    if (errors.size){
+      for (const err of errors){
+        await showAttachmentError(err);
+      }
+    }
   }
 
   function setAttachmentUiDisabled(on){
@@ -1962,7 +2008,9 @@ html.valki-chat-open [id*="menu" i]{
         const text = typeof m.message === "string"
           ? m.message
           : (typeof m.content === "string" ? m.content : "");
-        const images = Array.isArray(m.images) ? m.images : undefined;
+        const images = Array.isArray(m.images)
+          ? m.images
+          : (Array.isArray(m.attachments) ? m.attachments : undefined);
         await addMessage({ type, text, images });
       }
 
@@ -2063,8 +2111,10 @@ html.valki-chat-open [id*="menu" i]{
   }
 
   async function askValki(text){
+    if (isSending) return;
     const q = cleanText(text);
-    if (!q || isSending) return;
+    const hasImages = attachments.length > 0;
+    if (!q && !hasImages) return;
 
     if (guestHardBlocked()){
       openAuthOverlay({ hard:true });
@@ -2080,10 +2130,12 @@ html.valki-chat-open [id*="menu" i]{
       dataUrl: a.dataUrl
     }));
 
-    await addMessage({ type:"user", text:q, images: imagesForSend });
+    const messageText = q || "";
+
+    await addMessage({ type:"user", text:messageText, images: imagesForSend });
 
     if (!isLoggedIn()){
-      guestHistory.push({ type:"user", text:q, images: imagesForSend });
+      guestHistory.push({ type:"user", text:messageText, images: imagesForSend });
       saveGuestHistory(guestHistory);
       bumpGuestCount();
     }
@@ -2091,10 +2143,13 @@ html.valki-chat-open [id*="menu" i]{
     const typingRow = createTypingRow();
 
     const payload = {
-      message: q,
+      message: messageText,
       clientId,
       images: imagesForSend
     };
+    if (imagesForSend.length){
+      payload.attachments = imagesForSend;
+    }
 
     const headers = { "Content-Type":"application/json" };
     const tok = getAuthToken();
@@ -2194,7 +2249,7 @@ html.valki-chat-open [id*="menu" i]{
   chatForm.addEventListener("submit", (e)=>{
     e.preventDefault();
     const q = cleanText(chatInput.value);
-    if (!q) return;
+    if (!q && attachments.length === 0) return;
 
     chatInput.value = "";
     clampComposer();
