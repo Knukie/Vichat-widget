@@ -24,6 +24,19 @@
   --valki-font: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
 }
 
+#valki-bg{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  z-index:0;
+  pointer-events:none;
+}
+
+html.valki-chat-open #valki-bg{
+  display:none !important;
+}
+
 /* Optional: hide CMP prefs button (your site button) */
 #consent-banner-prefs-button{
   display:none !important;
@@ -85,6 +98,8 @@ html,body{
   justify-content:center;
   flex-direction:column;
   align-items:center;
+  position:relative;
+  z-index:1;
 }
 
 /* ===============================
@@ -115,7 +130,139 @@ html,body{
 /* ===============================
    LANDING SEARCH
 ================================*/
+.valki-landing-wrap{
+  width:100%;
+  max-width:760px;
+  margin:0 auto;
+  padding:40px 10px 0;
+  box-sizing:border-box;
+  position:relative;
+}
+
+.valki-hero-actions{
+  position:absolute;
+  top:6px;
+  right:10px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  z-index:2;
+  transition:opacity .16s ease, transform .16s ease;
+}
+
+.valki-hero-logo{
+  width:36px;
+  height:36px;
+  border-radius:12px;
+  background:radial-gradient(circle at 35% 35%, #f7f7f7 0, #d8d8d8 40%, #8f8f8f 85%);
+  border:1px solid rgba(255,255,255,.22);
+  box-shadow:0 12px 28px rgba(0,0,0,.65), 0 0 0 1px rgba(0,0,0,.45) inset;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+
+.valki-hero-logo img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:inherit;
+  display:block;
+}
+
+.valki-login-btn{
+  appearance:none;
+  -webkit-appearance:none;
+  border:0;
+  outline:0;
+
+  padding:10px 22px;
+  border-radius:999px;
+
+  font-family:Inter,system-ui,-apple-system,sans-serif;
+  font-size:15px;
+  font-weight:500;
+
+  background-color:#fff;
+  color:#050505;
+
+  cursor:pointer;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+
+  box-shadow:
+    0 8px 22px rgba(0,0,0,.35),
+    0 0 0 1px rgba(255,255,255,.15) inset;
+
+  transform:translateZ(0);
+  backface-visibility:hidden;
+  will-change:transform, box-shadow, background-color;
+
+  transition:
+    transform .15s ease,
+    box-shadow .15s ease,
+    background-color .15s ease;
+}
+
+.valki-login-btn:hover{
+  transform:translate3d(0,-1px,0);
+  background-color:#f2f2f2;
+  box-shadow:
+    0 12px 30px rgba(0,0,0,.45),
+    0 0 0 1px rgba(255,255,255,.25) inset;
+}
+
+.valki-login-btn:active{
+  transform:translate3d(0,0,0);
+  background-color:#e6e6e6;
+  box-shadow: 0 6px 16px rgba(0,0,0,.35);
+}
+
+.valki-login-btn:focus{ outline:none; }
+.valki-login-btn:focus-visible{
+  outline:none;
+  box-shadow:
+    0 8px 22px rgba(0,0,0,.35),
+    0 0 0 1px rgba(255,255,255,.15) inset,
+    0 0 0 3px rgba(241,90,36,.22);
+}
+
+.valki-login-btn[data-state="logout"]{
+  background-color:#f4f4f4;
+  color:#0f0f0f;
+}
+
+html.valki-chat-open .valki-hero-actions,
+html.valki-chat-open .valki-login-btn{
+  opacity:0;
+  pointer-events:none;
+  transform:translateY(-6px);
+}
+
 .valki-search-form{ width:100%; max-width:720px; margin:0 auto; padding: 0 14px; box-sizing:border-box; }
+
+.valki-hero-actions + .valki-search-form{ margin-top:4px; }
+
+@media (max-width:640px){
+  .valki-landing-wrap{
+    padding:18px 10px 0;
+  }
+  .valki-hero-actions{
+    position:static;
+    justify-content:flex-end;
+    margin-bottom:10px;
+  }
+  .valki-hero-logo{ width:32px; height:32px; }
+  .valki-login-btn{ font-size:14px; padding:9px 20px; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .valki-login-btn,
+  .valki-hero-actions{
+    transition:none;
+  }
+}
 
 .valki-search-inner{
   position:relative;
@@ -963,7 +1110,8 @@ html.valki-chat-open [id*="menu" i]{
     }
 
     const container = document.createElement('div');
-    container.innerHTML = `<div class="valki-root" id="valki-root">
+    container.innerHTML = `<canvas id="valki-bg" aria-hidden="true"></canvas>
+<div class="valki-root" id="valki-root">
   <!-- Valki Signal Lock -->
   <div class="valki-signal-lock" id="valki-signal-lock" aria-label="Valki Talki. Web3.">
     <div class="valki-signal-line" id="line-main">Crypto Stuck?</div>
@@ -971,28 +1119,37 @@ html.valki-chat-open [id*="menu" i]{
   </div>
 
   <!-- Landing search -->
-  <form id="valki-search-form" class="valki-search-form" autocomplete="off">
-    <div class="valki-search-inner">
-      <span class="valki-search-icon" aria-hidden="true">🔎</span>
-
-      <input
-        id="valki-search-input"
-        class="valki-search-input"
-        type="text"
-        autocomplete="off"
-        placeholder=""
-        aria-label="Ask Valki"
-        enterkeyhint="send"
-      />
-
-      <button class="valki-search-button" type="submit" aria-label="Ask Valki">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 19V5"></path>
-          <path d="M5 12l7-7 7 7"></path>
-        </svg>
-      </button>
+  <div class="valki-landing-wrap">
+    <div class="valki-hero-actions" id="valki-hero-actions">
+      <div class="valki-hero-logo" aria-hidden="true">
+        <img src="https://valki.wiki/blogmedia/Valki%20Talki.jpg" alt="" loading="lazy" />
+      </div>
+      <button class="valki-login-btn" id="valki-hero-login-btn" type="button">Login</button>
     </div>
-  </form>
+
+    <form id="valki-search-form" class="valki-search-form" autocomplete="off">
+      <div class="valki-search-inner">
+        <span class="valki-search-icon" aria-hidden="true">🔎</span>
+
+        <input
+          id="valki-search-input"
+          class="valki-search-input"
+          type="text"
+          autocomplete="off"
+          placeholder=""
+          aria-label="Ask Valki"
+          enterkeyhint="send"
+        />
+
+        <button class="valki-search-button" type="submit" aria-label="Ask Valki">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 19V5"></path>
+            <path d="M5 12l7-7 7 7"></path>
+          </svg>
+        </button>
+      </div>
+    </form>
+  </div>
 
   <!-- Badge -->
   <div class="valki-top-badge" id="valki-top-badge" role="button" tabindex="0" aria-label="Open Valki">
@@ -1140,10 +1297,12 @@ html.valki-chat-open [id*="menu" i]{
     </div>
   </div>
 </div>`;
-    const root = container.firstElementChild;
+    const bgNode = container.querySelector("#valki-bg");
+    const root = container.querySelector("#valki-root");
     if (!root) return;
 
     const mount = document.getElementById('valki-mount') || document.body;
+    if (bgNode) mount.appendChild(bgNode);
     mount.appendChild(root);
 
     const scriptTag = document.createElement('script');
@@ -1189,6 +1348,7 @@ html.valki-chat-open [id*="menu" i]{
   ================================ */
   const $ = (id)=>document.getElementById(id);
 
+  const bgCanvas    = $("valki-bg");
   const root        = $("valki-root");
   const signalLock   = $("valki-signal-lock");
   const signalLineMain = $("line-main");
@@ -1197,6 +1357,7 @@ html.valki-chat-open [id*="menu" i]{
   const searchForm  = $("valki-search-form");
   const searchInput = $("valki-search-input");
 
+  const heroLoginBtn = $("valki-hero-login-btn");
   const badge       = $("valki-top-badge");
   const overlay     = $("valki-overlay");
   const closeBtn    = $("valki-close");
@@ -1238,7 +1399,7 @@ html.valki-chat-open [id*="menu" i]{
   const logoutYes      = $("valki-logout-yes");
 
   const required = [
-    root, searchForm, searchInput, badge, overlay, closeBtn,
+    root, searchForm, searchInput, heroLoginBtn, badge, overlay, closeBtn,
     messagesEl, messagesInner, chatForm, chatInput, sendBtn,
     attachBtn, fileInput, attachTray,
     authOverlay, loginOutBtn, deleteAllBtn,
@@ -1248,6 +1409,185 @@ html.valki-chat-open [id*="menu" i]{
   ];
 
   if (required.some(el => !el)) return;
+
+  /* ===============================
+     Valki animated background
+  ================================*/
+  (function initBackgroundCanvas(){
+    if (window.__VALKI_BG_RUNNING__) return;
+    if (!bgCanvas) return;
+
+    const ctx = bgCanvas.getContext("2d", { alpha:true });
+    if (!ctx) return;
+    window.__VALKI_BG_RUNNING__ = true;
+
+    const cfg = {
+      baseDark: 15,
+      vignetteStrength: 0.44,
+      ringEmitters: 2,
+      ringsPerEmitter: 5,
+      ringSpeed: 0.018,
+      ringMax: 1.25,
+      ringLine: 1.2,
+      ringOpacity: 0.05,
+      traceOpacity: 0.018,
+      traceSpeed: 0.22,
+      traceAmp: 0.020,
+      grainOpacity: 0.02
+    };
+
+    let w = 0, h = 0, dpr = 1;
+    let emitters = [];
+
+    const prefersReduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    function resize(){
+      dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      w = Math.floor(window.innerWidth * dpr);
+      h = Math.floor(window.innerHeight * dpr);
+      bgCanvas.width = w;
+      bgCanvas.height = h;
+      bgCanvas.style.width = "100vw";
+      bgCanvas.style.height = "100vh";
+
+      emitters = [
+        { x: w * 0.28, y: h * 0.42, phase: Math.random() * 10 },
+        { x: w * 0.72, y: h * 0.58, phase: Math.random() * 10 }
+      ].slice(0, cfg.ringEmitters);
+    }
+
+    window.addEventListener("resize", resize, { passive:true });
+    resize();
+
+    const grainCanvas = document.createElement("canvas");
+    const gctx = grainCanvas.getContext("2d");
+
+    function makeGrain(){
+      if (!gctx) return;
+      const gw = Math.floor(220 * dpr);
+      const gh = Math.floor(220 * dpr);
+      grainCanvas.width = gw;
+      grainCanvas.height = gh;
+
+      const img = gctx.createImageData(gw, gh);
+      for (let i = 0; i < img.data.length; i += 4){
+        const v = (Math.random() * 255) | 0;
+        img.data[i] = v;
+        img.data[i + 1] = v;
+        img.data[i + 2] = v;
+        img.data[i + 3] = 255;
+      }
+      gctx.putImageData(img, 0, 0);
+    }
+    makeGrain();
+    setInterval(makeGrain, 1600);
+
+    function drawBackground(){
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "rgb(" + cfg.baseDark + "," + cfg.baseDark + "," + cfg.baseDark + ")";
+      ctx.fillRect(0, 0, w, h);
+
+      const r = Math.max(w, h) * 0.78;
+      const grad = ctx.createRadialGradient(w * 0.5, h * 0.42, 0, w * 0.5, h * 0.5, r);
+      grad.addColorStop(0, "rgba(255,255,255,0.02)");
+      grad.addColorStop(1, "rgba(0,0,0," + cfg.vignetteStrength + ")");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    function drawRadioRings(t){
+      ctx.save();
+      ctx.globalCompositeOperation = "source-over";
+
+      const minDim = Math.min(w, h);
+      const maxR = minDim * cfg.ringMax;
+
+      for (const e of emitters){
+        const aBase = cfg.ringOpacity * (0.85 + 0.15 * Math.sin(t * 0.6 + e.phase));
+        ctx.lineWidth = cfg.ringLine * dpr;
+
+        for (let i = 0; i < cfg.ringsPerEmitter; i++){
+          const offset = i / cfg.ringsPerEmitter;
+          const p = (t * cfg.ringSpeed + offset + e.phase * 0.02) % 1;
+          const radius = p * maxR;
+
+          const fade = (1 - p) * (1 - p);
+          const alpha = aBase * fade;
+
+          ctx.strokeStyle = "rgba(190,200,215," + alpha + ")";
+          ctx.beginPath();
+          ctx.arc(e.x, e.y, radius, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = "rgba(190,200,215,0.06)";
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, 1.6 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function drawSignalTrace(t){
+      ctx.save();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.strokeStyle = "rgba(190,200,215," + cfg.traceOpacity + ")";
+      ctx.lineWidth = 1 * dpr;
+
+      const y0 = h * (0.34 + 0.08 * Math.sin(t * 0.12));
+      const amp = h * cfg.traceAmp;
+      const freq = (2 * Math.PI) / (w * 0.55);
+
+      ctx.beginPath();
+      const step = 8 * dpr;
+
+      for (let x = 0; x <= w; x += step){
+        const y =
+          y0 +
+          Math.sin(x * freq + t * cfg.traceSpeed) * amp +
+          Math.sin(x * freq * 0.35 - t * cfg.traceSpeed * 0.7) * amp * 0.55 +
+          Math.sin(x * freq * 1.7 + t * 0.9) * amp * 0.12;
+
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawGrain(){
+      if (!gctx) return;
+      ctx.save();
+      ctx.globalAlpha = cfg.grainOpacity;
+      ctx.globalCompositeOperation = "overlay";
+      const pattern = ctx.createPattern(grainCanvas, "repeat");
+      if (pattern){
+        ctx.fillStyle = pattern;
+        ctx.fillRect(0, 0, w, h);
+      }
+      ctx.restore();
+    }
+
+    const start = performance.now();
+    function frame(now){
+      const t = (now - start) * 0.001;
+      drawBackground();
+
+      if (!prefersReduced){
+        drawRadioRings(t);
+        drawSignalTrace(t);
+      } else {
+        drawRadioRings(0);
+        drawSignalTrace(0);
+      }
+
+      drawGrain();
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  })();
 
   /* ===============================
      Helpers
@@ -1392,6 +1732,14 @@ html.valki-chat-open [id*="menu" i]{
     sessionLabel.textContent = isLoggedIn() ? "you 🟢" : "Guest 🟠";
   }
 
+  function updateHeroLoginButton(){
+    if (!heroLoginBtn) return;
+    const loggedIn = isLoggedIn();
+    heroLoginBtn.textContent = loggedIn ? "Log out" : "Login";
+    heroLoginBtn.dataset.state = loggedIn ? "logout" : "login";
+    heroLoginBtn.setAttribute("aria-label", loggedIn ? "Log out of Valki" : "Login to Valki");
+  }
+
   function updateLoginOutButtonLabel(){
     if (isLoggedIn()){
       loginOutBtn.style.display = "none";
@@ -1399,6 +1747,7 @@ html.valki-chat-open [id*="menu" i]{
       loginOutBtn.style.display = "inline-flex";
       loginOutBtn.textContent = "Login";
     }
+    updateHeroLoginButton();
   }
 
   function hasAnyRealMessages(){
@@ -1805,18 +2154,18 @@ html.valki-chat-open [id*="menu" i]{
       const t = String(f.type || "").toLowerCase();
       const ok = (t === "image/jpeg" || t === "image/png" || t === "image/jpg");
       if (!ok){
-        errors.add(`${f.name || "File"} is not a supported image (JPEG/PNG).`);
+        errors.add((f.name || "File") + " is not a supported image (JPEG/PNG).");
         continue;
       }
 
       if (f.size > MAX_BYTES){
-        errors.add(`${f.name || "Image"} is too large (max 5MB).`);
+        errors.add((f.name || "Image") + " is too large (max 5MB).");
         continue;
       }
 
       const dataUrl = await readFileAsDataURL(f).catch(()=> "");
       if (!dataUrl){
-        errors.add(`Could not load ${f.name || "image"}.`);
+        errors.add("Could not load " + (f.name || "image") + ".");
         continue;
       }
 
@@ -1912,7 +2261,7 @@ html.valki-chat-open [id*="menu" i]{
     const popup = window.open(
       url,
       popupName,
-      \`popup=yes,width=\${w},height=\${h},left=\${Math.round(x)},top=\${Math.round(y)}\`
+      "popup=yes,width=" + w + ",height=" + h + ",left=" + Math.round(x) + ",top=" + Math.round(y)
     );
 
     if (!popup){
@@ -2309,6 +2658,7 @@ html.valki-chat-open [id*="menu" i]{
   attachAccountTrigger(headerAvatar);
   attachAccountTrigger(headerTitle);
   attachAccountTrigger(sessionLabel);
+  attachAccountTrigger(heroLoginBtn);
 
   async function openFromBadge(e){
     if (e){ e.preventDefault(); e.stopPropagation(); }
