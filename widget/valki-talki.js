@@ -54,6 +54,7 @@
   --valki-font: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
   --valki-content-max: 860px;
   --valki-vh: 1vh;
+  --valki-vh: 1dvh;
   --valki-chat-pad-bottom: calc(env(safe-area-inset-bottom) + 8px);
 }
 
@@ -1438,8 +1439,6 @@ html.valki-chat-open header.valki-site-header{
      DOM
   ================================ */
   const $ = (id)=>document.getElementById(id);
-  const docStyle = document.documentElement && document.documentElement.style;
-  let vhRaf = null;
 
   const bgCanvas    = $("valki-bg");
   const root        = $("valki-root");
@@ -1720,40 +1719,21 @@ html.valki-chat-open header.valki-site-header{
   }
 
   function getViewportHeight(){
-    return (window.visualViewport && window.visualViewport.height) ||
-      window.innerHeight ||
+    return window.innerHeight ||
       (document.documentElement && document.documentElement.clientHeight) ||
       0;
   }
 
-  function setViewportUnit(){
-    if (!docStyle) return;
+  function applyViewportUnit(){
     const h = getViewportHeight();
     if (!h) return;
-    const next = (h * 0.01).toFixed(4) + "px";
-    docStyle.setProperty("--valki-vh", next);
-  }
-
-  function queueViewportUnit(){
-    if (vhRaf) cancelAnimationFrame(vhRaf);
-    vhRaf = requestAnimationFrame(()=>{
-      vhRaf = null;
-      setViewportUnit();
-    });
+    try{
+      document.documentElement.style.setProperty("--valki-vh", (h * 0.01).toFixed(4) + "px");
+    }catch{}
   }
 
   function bindViewportUnitListeners(){
-    queueViewportUnit();
-    const onChange = ()=> queueViewportUnit();
-    const onOrientation = ()=>{ queueViewportUnit(); setTimeout(queueViewportUnit, 90); };
-
-    window.addEventListener("resize", onChange, { passive:true });
-    window.addEventListener("orientationchange", onOrientation, { passive:true });
-
-    if (window.visualViewport){
-      window.visualViewport.addEventListener("resize", onChange, { passive:true });
-      window.visualViewport.addEventListener("scroll", onChange, { passive:true });
-    }
+    applyViewportUnit();
   }
 
   function isNearBottom(el, px=90){
@@ -2967,14 +2947,25 @@ html.valki-chat-open header.valki-site-header{
   /* ===============================
      Resize / fonts
   ================================ */
+  function isEditingInput(){
+    const el = document.activeElement;
+    return el === chatInput || el === searchInput;
+  }
+
   function handleViewportResize(){
-    queueViewportUnit();
+    applyViewportUnit();
     if (document.activeElement === chatInput) clampComposer();
     scrollToBottom(false);
   }
 
-  window.addEventListener("resize", handleViewportResize, { passive:true });
-  window.addEventListener("orientationchange", handleViewportResize, { passive:true });
+  window.addEventListener("resize", ()=>{
+    if (isEditingInput()) return;
+    applyViewportUnit();
+  }, { passive:true });
+
+  window.addEventListener("orientationchange", ()=>{
+    setTimeout(handleViewportResize, 120);
+  }, { passive:true });
 
   if (document.fonts && document.fonts.ready){
     document.fonts.ready.then(()=>{
