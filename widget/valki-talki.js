@@ -53,13 +53,15 @@
 
   --valki-font: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
   --valki-content-max: 860px;
+  --valki-vh: 1vh;
+  --valki-chat-pad-bottom: calc(env(safe-area-inset-bottom) + 8px);
 }
 
 #valki-bg{
   position:fixed;
   inset:0;
   width:100vw;
-  height:100dvh;
+  height:calc(var(--valki-vh, 1vh) * 100);
   z-index:0;
   pointer-events:none;
   background:var(--bg);
@@ -87,7 +89,14 @@ html,body{
   color:var(--text-main);
   margin:0;
   padding:0;
-  min-height:100%;
+  min-height:calc(var(--valki-vh, 1vh) * 100);
+}
+
+html.valki-landing-ready:not(.valki-chat-open),
+body.valki-landing-ready:not(.valki-chat-open){
+  height:calc(var(--valki-vh, 1vh) * 100);
+  overflow:hidden !important;
+  overscroll-behavior:none;
 }
 
 /* Geen scroll op landing (mobiel) */
@@ -95,13 +104,11 @@ html,body{
   html:not(.valki-chat-open),
   body:not(.valki-chat-open){
     height:100%;
-    overflow:hidden !important;
-    overscroll-behavior:none;
   }
 
   /* Zorg dat de landing netjes de viewport vult */
   .valki-landing-shell{
-    min-height:100vh;
+    min-height:calc(var(--valki-vh, 1vh) * 100);
     min-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     justify-content:center;
   }
@@ -148,7 +155,7 @@ html,body{
   max-width:none;
   margin:0;
   padding:0;
-  min-height:100vh;
+  min-height:calc(var(--valki-vh, 1vh) * 100);
   min-height:100dvh;
   box-sizing:border-box;
   position:relative;
@@ -167,7 +174,7 @@ html,body{
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  min-height:100vh;
+  min-height:calc(var(--valki-vh, 1vh) * 100);
   min-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   padding:calc(18px + env(safe-area-inset-top)) 0 calc(26px + env(safe-area-inset-bottom));
   box-sizing:border-box;
@@ -499,6 +506,7 @@ html.valki-chat-open .valki-login-btn{
   position:fixed; inset:0;
   background:rgba(0,0,0,.88);
   display:none;
+  pointer-events:none;
   align-items:center; justify-content:center;
   opacity:0;
   transition:opacity .18s ease-out;
@@ -518,13 +526,14 @@ html.valki-chat-open .valki-login-btn{
 .valki-logout-overlay.is-visible{
   display:flex;
   opacity:1;
+  pointer-events:auto;
 }
 
 /* FULLSCREEN chat modal */
 .valki-modal{
   width:100vw;
   max-width:none;
-  height:100dvh;
+  height:calc(var(--valki-vh, 1vh) * 100);
   max-height:none;
   min-height:0;
 
@@ -739,7 +748,7 @@ html.valki-chat-open header.valki-site-header{
   border-top:1px solid rgba(255,255,255,.08);
   background:linear-gradient(to top,#050505,#080808);
   --valki-cookie-reserve: 0px !important;
-  padding:12px 0 calc(8px + env(safe-area-inset-bottom)) !important;
+  padding:12px 0 var(--valki-chat-pad-bottom) !important;
   width:100%;
   margin-top:auto;
 }
@@ -914,7 +923,7 @@ html.valki-chat-open header.valki-site-header{
   opacity:.92;
   font-family:var(--valki-font);
   margin:4px auto 0 !important;
-  padding:0 16px env(safe-area-inset-bottom) !important;
+  padding:0 16px 0 !important;
 }
 .valki-disclaimer-button{
   background:none;
@@ -1419,6 +1428,7 @@ html.valki-chat-open header.valki-site-header{
   const MSG_NO_RESPONSE   = "…krrzzzt… no response received.";
 
   const CHAT_MAX_LINES = 4;
+  const CHAT_PAD_BASE = "var(--valki-chat-pad-bottom)";
 
   /* Attachments */
   const MAX_FILES = 4;
@@ -1492,6 +1502,10 @@ html.valki-chat-open header.valki-site-header{
 
   if (required.some(el => !el)) return;
 
+  document.documentElement.classList.add("valki-landing-ready");
+  document.body.classList.add("valki-landing-ready");
+  bindViewportUnitListeners();
+
   /* ===============================
      Valki animated background
   ================================*/
@@ -1526,11 +1540,11 @@ html.valki-chat-open header.valki-site-header{
     function resize(){
       dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
       w = Math.floor(window.innerWidth * dpr);
-      h = Math.floor(window.innerHeight * dpr);
+      h = Math.floor(getViewportHeight() * dpr);
       bgCanvas.width = w;
       bgCanvas.height = h;
       bgCanvas.style.width = "100vw";
-      bgCanvas.style.height = "100vh";
+      bgCanvas.style.height = "calc(var(--valki-vh, 1vh) * 100)";
 
       emitters = [
         { x: w * 0.28, y: h * 0.42, phase: Math.random() * 10 },
@@ -1680,6 +1694,7 @@ html.valki-chat-open header.valki-site-header{
 
   const DEBUG = !!window.__VALKI_DEBUG__;
   const overlayCleanupTimers = new WeakMap();
+  let vhRaf = null;
 
   function nowIso(){ return new Date().toISOString(); }
   function describeEl(el){
@@ -1702,6 +1717,43 @@ html.valki-chat-open header.valki-site-header{
       extra || {}
     );
     console.log("[VALKI][overlay]", payload);
+  }
+
+  function getViewportHeight(){
+    return (window.visualViewport && window.visualViewport.height) ||
+      window.innerHeight ||
+      (document.documentElement && document.documentElement.clientHeight) ||
+      0;
+  }
+
+  function setViewportUnit(){
+    if (!docStyle) return;
+    const h = getViewportHeight();
+    if (!h) return;
+    const next = (h * 0.01).toFixed(4) + "px";
+    docStyle.setProperty("--valki-vh", next);
+  }
+
+  function queueViewportUnit(){
+    if (vhRaf) cancelAnimationFrame(vhRaf);
+    vhRaf = requestAnimationFrame(()=>{
+      vhRaf = null;
+      setViewportUnit();
+    });
+  }
+
+  function bindViewportUnitListeners(){
+    queueViewportUnit();
+    const onChange = ()=> queueViewportUnit();
+    const onOrientation = ()=>{ queueViewportUnit(); setTimeout(queueViewportUnit, 90); };
+
+    window.addEventListener("resize", onChange, { passive:true });
+    window.addEventListener("orientationchange", onOrientation, { passive:true });
+
+    if (window.visualViewport){
+      window.visualViewport.addEventListener("resize", onChange, { passive:true });
+      window.visualViewport.addEventListener("scroll", onChange, { passive:true });
+    }
   }
 
   function isNearBottom(el, px=90){
@@ -1735,7 +1787,7 @@ html.valki-chat-open header.valki-site-header{
   function applyIOSKeyboardInsets(activeEl){
     if (!IS_IOS || !window.visualViewport || !chatForm) return;
     const gap = currentKeyboardOffset();
-    chatForm.style.paddingBottom = "calc(8px + env(safe-area-inset-bottom) + " + gap + "px)";
+    chatForm.style.paddingBottom = "calc(" + CHAT_PAD_BASE + " + " + gap + "px)";
     scrollToBottom(true);
     try{
       if (activeEl && activeEl.scrollIntoView) activeEl.scrollIntoView({ block:"nearest" });
@@ -1745,7 +1797,7 @@ html.valki-chat-open header.valki-site-header{
 
   function resetIOSKeyboardInsets(){
     if (!chatForm) return;
-    chatForm.style.paddingBottom = "calc(8px + env(safe-area-inset-bottom))";
+    chatForm.style.paddingBottom = CHAT_PAD_BASE;
     logDebug("iosKeyboard:reset", null, {});
   }
 
@@ -1772,6 +1824,7 @@ html.valki-chat-open header.valki-site-header{
     el.classList.remove("is-visible");
     el.setAttribute("aria-hidden","true");
     el.style.display = "none";
+    el.style.pointerEvents = "none";
     overlayCleanupTimers.delete(el);
     logDebug("force-hide", el, { reason });
   }
@@ -1783,6 +1836,7 @@ html.valki-chat-open header.valki-site-header{
 
     if (on){
       el.style.display = "flex";
+      el.style.pointerEvents = "auto";
       el.setAttribute("aria-hidden","false");
       requestAnimationFrame(()=>{
         el.classList.add("is-visible");
@@ -1794,6 +1848,7 @@ html.valki-chat-open header.valki-site-header{
 
     el.setAttribute("aria-hidden","true");
     el.classList.remove("is-visible");
+    el.style.pointerEvents = "none";
     logDebug("is-visible:remove", el, { reason });
     logDebug("hide", el, { reason });
 
@@ -2966,6 +3021,7 @@ html.valki-chat-open header.valki-site-header{
      Resize / fonts
   ================================ */
   function handleViewportResize(){
+    queueViewportUnit();
     if (document.activeElement === chatInput) clampComposer();
     scrollToBottom(false);
   }
