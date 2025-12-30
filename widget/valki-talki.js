@@ -81,13 +81,6 @@ html.valki-chat-open #valki-bg{
   }
 }
 
-/* Optional: hide CMP prefs button (your site button) */
-#consent-banner-prefs-button{
-  display:none !important;
-  visibility:hidden !important;
-  pointer-events:none !important;
-}
-
 html,body{
   background:var(--bg);
   font-family:var(--valki-font);
@@ -558,40 +551,12 @@ html.valki-chat-open .valki-login-btn{
   transform:translateY(0);
 }
 
-/* Hide site header/menu when modal open */
-html.valki-chat-open header,
+/* Hide a specific site header when modal open (kept narrow to avoid CMP clashes) */
 html.valki-chat-open .site-header,
-html.valki-chat-open .navbar,
-html.valki-chat-open .header,
-html.valki-chat-open #header{
+html.valki-chat-open header.valki-site-header{
   opacity:0 !important;
   pointer-events:none !important;
   transition:opacity 160ms ease;
-}
-
-/* Hide menus when modal open */
-html.valki-chat-open .menu,
-html.valki-chat-open .menu-toggle,
-html.valki-chat-open .menu-toggler,
-html.valki-chat-open .nav-toggle,
-html.valki-chat-open .navbar-toggle,
-html.valki-chat-open .hamburger,
-html.valki-chat-open .hamburger-menu,
-html.valki-chat-open .mobile-menu,
-html.valki-chat-open .mobile-nav-toggle,
-html.valki-chat-open .site-menu-toggle,
-html.valki-chat-open .header__toggle,
-html.valki-chat-open .nav__toggle,
-html.valki-chat-open [aria-label*="menu" i],
-html.valki-chat-open [aria-label*="navigation" i],
-html.valki-chat-open [class*="hamburger" i],
-html.valki-chat-open [class*="menu-toggle" i],
-html.valki-chat-open [id*="hamburger" i],
-html.valki-chat-open [id*="menu" i]{
-  opacity:0 !important;
-  pointer-events:none !important;
-  visibility:hidden !important;
-  transition:opacity 160ms ease, visibility 160ms ease;
 }
 
 /* ===============================
@@ -1342,7 +1307,7 @@ html.valki-chat-open [id*="menu" i]{
             <button
               type="button"
               class="valki-disclaimer-button"
-              onclick="if (typeof displayPreferenceModal === 'function') { displayPreferenceModal(); }"
+              onclick="if (typeof openCookiePrefsSafe === 'function') { openCookiePrefsSafe(); }"
             >
               See cookie preferences.
             </button>
@@ -2219,9 +2184,12 @@ html.valki-chat-open [id*="menu" i]{
      Overlay open/close (iOS safe)
   ================================ */
   function isChatOpen(){ return overlay.classList.contains("is-visible"); }
+  function isBodyScrollLocked(){ return document.body.dataset.valkiScrollLocked === "1"; }
 
   function lockBodyScroll(){
+    if (isBodyScrollLocked()) return;
     const y = window.scrollY || 0;
+    document.body.dataset.valkiScrollLocked = "1";
     document.body.dataset.valkiScrollY = String(y);
     document.body.style.position = "fixed";
     document.body.style.top = "-" + y + "px";
@@ -2234,6 +2202,7 @@ html.valki-chat-open [id*="menu" i]{
     logDebug("lockBodyScroll", overlay, { htmlClassList: Array.from(document.documentElement.classList || []), scrollY:y });
   }
   function unlockBodyScroll(){
+    const hadLock = isBodyScrollLocked();
     const y = parseInt(document.body.dataset.valkiScrollY || "0", 10);
     document.body.style.position = "";
     document.body.style.top = "";
@@ -2242,10 +2211,11 @@ html.valki-chat-open [id*="menu" i]{
     document.body.style.width = "";
     document.body.style.overflow = "";
     document.body.style.touchAction = "";
+    delete document.body.dataset.valkiScrollLocked;
     delete document.body.dataset.valkiScrollY;
     document.documentElement.classList.remove("valki-chat-open");
     logDebug("unlockBodyScroll", overlay, { htmlClassList: Array.from(document.documentElement.classList || []), scrollY:y });
-    window.scrollTo({ top:y, behavior:"auto" });
+    if (hadLock) window.scrollTo({ top:y, behavior:"auto" });
   }
 
   function openOverlay(){
@@ -2266,12 +2236,83 @@ html.valki-chat-open [id*="menu" i]{
     });
   }
 
-  function closeOverlay(){
+  function closeOverlay(reason){
+    const why = (typeof reason === "string") ? reason : "closeOverlay";
     logDebug("closeOverlay:start", overlay);
-    setVisible(overlay, false, "closeOverlay");
+    setVisible(overlay, false, why);
     unbindIOSKeyboardListeners();
     unlockBodyScroll();
   }
+
+  function closeAllOverlays(reason){
+    const why = reason || "closeAllOverlays";
+    if (logoutOverlay && logoutOverlay.classList.contains("is-visible")) closeLogoutPrompt(why);
+    if (confirmOverlay && confirmOverlay.classList.contains("is-visible")) closeConfirm(why);
+    if (authOverlay && authOverlay.classList.contains("is-visible")) closeAuthOverlay({ force:true, reason:why });
+    if (isChatOpen()) closeOverlay(why);
+    unlockBodyScroll();
+  }
+
+  const TERMLY_SELECTORS = [
+    ".termly-modal",
+    ".termly-preference-modal",
+    "#consent-preferences-modal",
+    '#termly-code-snippet-support [data-tnc="preferences-modal"]',
+    '#termly-code-snippet-support [data-testid="termly-preference-modal"]',
+    "#termly-pref-modal",
+    "#termly-preference-center"
+  ];
+
+  function isElementVisible(el){
+    if (!el) return false;
+    const rect = el.getBoundingClientRect();
+    const style = window.getComputedStyle ? getComputedStyle(el) : null;
+    const hasSize = (rect.width > 0 || rect.height > 0);
+    const hidden = style && (style.display === "none" || style.visibility === "hidden" || parseFloat(style.opacity || "1") === 0);
+    return hasSize && !hidden;
+  }
+
+  function isTermlyModalOpen(){
+    for (const sel of TERMLY_SELECTORS){
+      const node = document.querySelector(sel);
+      if (node && isElementVisible(node)) return true;
+    }
+    const support = document.querySelector("#termly-code-snippet-support");
+    if (support){
+      const dialog = support.querySelector('[role="dialog"], [data-tnc="preferences-modal"]');
+      if (dialog && isElementVisible(dialog)) return true;
+    }
+    return false;
+  }
+
+  function startTermlyObserver(){
+    if (!window.MutationObserver || window.__VALKI_TERMLY_OBS__) return;
+    const obs = new MutationObserver(()=>{
+      if (isTermlyModalOpen()){
+        closeAllOverlays("termly-open");
+      }
+    });
+    try{
+      obs.observe(document.body, { childList:true, subtree:true, attributes:true, attributeFilter:["style","class","aria-hidden"] });
+      window.__VALKI_TERMLY_OBS__ = obs;
+    }catch(e){
+      console.warn("Termly observer failed", e);
+    }
+  }
+
+  function openCookiePrefsSafe(){
+    try{
+      closeAllOverlays("cookie-prefs");
+      setTimeout(()=>{
+        if (typeof displayPreferenceModal === "function"){
+          displayPreferenceModal();
+        }
+      }, 250);
+    }catch(e){
+      console.warn("openCookiePrefsSafe failed", e);
+    }
+  }
+  window.openCookiePrefsSafe = openCookiePrefsSafe;
 
   /* ===============================
      Composer auto-grow (native)
@@ -2440,10 +2481,20 @@ html.valki-chat-open [id*="menu" i]{
     }
   }
 
-  function closeAuthOverlay(){
-    if (authHard) return;
-    logDebug("closeAuthOverlay:start", authOverlay);
-    setVisible(authOverlay, false, "closeAuthOverlay");
+  function closeAuthOverlay(arg){
+    const opts = (arg && typeof arg === "object" && "preventDefault" in arg) ? {} : (arg || {});
+    const force = !!opts.force;
+    const reason = opts.reason || "closeAuthOverlay";
+    if (authHard && !force) return;
+    logDebug("closeAuthOverlay:start", authOverlay, { force, reason });
+    setVisible(authOverlay, false, reason);
+    if (force && authHard){
+      chatInput.disabled = false;
+      sendBtn.disabled = false;
+      searchInput.disabled = false;
+      setAttachmentUiDisabled(false);
+      updateDeleteButtonState(false);
+    }
   }
 
   /* ===============================
@@ -2453,9 +2504,10 @@ html.valki-chat-open [id*="menu" i]{
     logDebug("openConfirm:start", confirmOverlay);
     setVisible(confirmOverlay, true, "openConfirm");
   }
-  function closeConfirm(){
+  function closeConfirm(reason){
+    const why = (typeof reason === "string") ? reason : "closeConfirm";
     logDebug("closeConfirm:start", confirmOverlay);
-    setVisible(confirmOverlay, false, "closeConfirm");
+    setVisible(confirmOverlay, false, why);
   }
 
   /* ===============================
@@ -2465,9 +2517,10 @@ html.valki-chat-open [id*="menu" i]{
     logDebug("openLogoutPrompt:start", logoutOverlay);
     setVisible(logoutOverlay, true, "openLogoutPrompt");
   }
-  function closeLogoutPrompt(){
+  function closeLogoutPrompt(reason){
+    const why = (typeof reason === "string") ? reason : "closeLogoutPrompt";
     logDebug("closeLogoutPrompt:start", logoutOverlay);
-    setVisible(logoutOverlay, false, "closeLogoutPrompt");
+    setVisible(logoutOverlay, false, why);
   }
 
   logoutNo.addEventListener("click", closeLogoutPrompt);
@@ -2863,6 +2916,7 @@ html.valki-chat-open [id*="menu" i]{
   });
 
   closeBtn.addEventListener("click", closeOverlay);
+  overlay.addEventListener("click", (e)=>{ if (e.target === overlay) closeOverlay("backdrop"); });
 
   document.addEventListener("keydown", (e)=>{
     if (e.key !== "Escape") return;
@@ -2879,6 +2933,8 @@ html.valki-chat-open [id*="menu" i]{
     }
     if (isChatOpen()) closeOverlay();
   });
+
+  startTermlyObserver();
 
   function attachAccountTrigger(el){
     if (!el) return;
