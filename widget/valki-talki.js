@@ -4,8 +4,38 @@
   }
   window.__VALKI_TALKI_LOADED__ = true;
 
+  const ensureViewportFitCover = () => {
+    const headEl = document.head || document.getElementsByTagName('head')[0] || document.documentElement;
+    if (!headEl) return;
+
+    let meta = headEl.querySelector('meta[name="viewport"]');
+    const content = (meta && meta.getAttribute('content')) || '';
+    const parts = content.split(',').map((p) => p.trim()).filter(Boolean);
+
+    const hasWidth = parts.some((p) => p.startsWith('width='));
+    const hasInitialScale = parts.some((p) => p.startsWith('initial-scale'));
+    const hasViewportFit = parts.some((p) => p.startsWith('viewport-fit'));
+
+    if (!hasWidth) parts.unshift('width=device-width');
+    if (!hasInitialScale) parts.unshift('initial-scale=1');
+    if (!hasViewportFit) parts.push('viewport-fit=cover');
+
+    const nextContent = parts.join(', ') || 'width=device-width, initial-scale=1, viewport-fit=cover';
+
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'viewport');
+      meta.setAttribute('content', nextContent);
+      headEl.prepend(meta);
+    } else {
+      meta.setAttribute('content', nextContent);
+    }
+  };
+
   const init = () => {
     if (document.getElementById('valki-root')) return;
+
+    ensureViewportFitCover();
 
     const styleTag = document.createElement('style');
     styleTag.setAttribute('data-valki-talki', '');
@@ -29,9 +59,10 @@
   position:fixed;
   inset:0;
   width:100vw;
-  height:100vh;
+  height:100dvh;
   z-index:0;
   pointer-events:none;
+  background:var(--bg);
 }
 
 html.valki-chat-open #valki-bg{
@@ -63,6 +94,7 @@ html,body{
   color:var(--text-main);
   margin:0;
   padding:0;
+  min-height:100%;
 }
 
 /* Geen scroll op landing (mobiel) */
@@ -126,6 +158,7 @@ html,body{
   box-sizing:border-box;
   position:relative;
   z-index:1;
+  padding-top:env(safe-area-inset-top);
 
   display:flex;
   flex-direction:column;

@@ -5,6 +5,8 @@
 - Keeps your existing OAuth/guest/import/delete flows intact
 ===================== -->
 
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
 <style>
 :root{
   --bg:#050505;
@@ -34,6 +36,17 @@ html,body{
   color:var(--text-main);
   margin:0;
   padding:0;
+  min-height:100%;
+}
+
+#valki-bg{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100dvh;
+  z-index:0;
+  pointer-events:none;
+  background:var(--bg);
 }
 
 /* ===============================
@@ -78,6 +91,14 @@ html,body{
   margin:0;
   padding:0;
   box-sizing:border-box;
+  min-height:100vh;
+  position:relative;
+  z-index:1;
+  padding-top:env(safe-area-inset-top);
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
 }
 
 /* ===============================
@@ -868,6 +889,7 @@ html.valki-chat-open [id*="menu" i]{
 }
 </style>
 
+<canvas id="valki-bg" aria-hidden="true"></canvas>
 <div class="valki-root" id="valki-root">
   <!-- Landing search -->
   <form id="valki-search-form" class="valki-search-form" autocomplete="off">
