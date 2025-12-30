@@ -65,6 +65,22 @@ html,body{
   padding:0;
 }
 
+/* Geen scroll op landing (mobiel) */
+@media (max-width: 640px){
+  html:not(.valki-chat-open),
+  body:not(.valki-chat-open){
+    height:100%;
+    overflow:hidden !important;
+    overscroll-behavior:none;
+  }
+
+  /* Zorg dat de landing netjes de viewport vult */
+  .valki-landing-shell{
+    min-height:100vh;
+    justify-content:center;
+  }
+}
+
 /* ===============================
    Selection (ChatGPT-ish)
 ================================*/
