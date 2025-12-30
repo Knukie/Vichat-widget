@@ -81,6 +81,10 @@ html,body{
   margin:0;
   padding:0;
   box-sizing:border-box;
+  display:flex;
+  justify-content:center;
+  flex-direction:column;
+  align-items:center;
 }
 
 /* ===============================
@@ -280,6 +284,8 @@ html,body{
   transition:.22s ease-out;
   display:flex;
   flex-direction:column;
+  align-items:center;
+  padding:0 16px;
 }
 .valki-overlay.is-visible .valki-modal{
   opacity:1;
@@ -333,6 +339,8 @@ html.valki-chat-open [id*="menu" i]{
   border-bottom:1px solid rgba(255,255,255,.08);
   background:linear-gradient(to bottom,#111111,#0b0b0b);
   gap:10px;
+  width:100%;
+  max-width:980px;
 }
 
 .valki-header-left{ display:flex; align-items:center; gap:10px; min-width:0; }
@@ -403,7 +411,7 @@ html.valki-chat-open [id*="menu" i]{
 .valki-messages{
   flex:1 1 auto;
   min-height:0;
-  padding:16px 16px 10px;
+  padding:16px 0 10px;
   overflow-y:auto;
   overscroll-behavior:contain;
   background:radial-gradient(circle at top, #101010 0, #050505 60%);
@@ -411,11 +419,16 @@ html.valki-chat-open [id*="menu" i]{
 
   scrollbar-width:thin;
   scrollbar-color: rgba(255,255,255,.25) transparent;
+  width:100%;
+  max-width:980px;
+  box-sizing:border-box;
+  display:flex;
+  justify-content:center;
 }
 .valki-messages-inner{
-  max-width:none; /* full width */
-  margin:0;
-  padding-bottom:12px;
+  max-width:720px;
+  margin:0 auto;
+  padding:0 16px 12px;
 }
 .valki-messages-inner:empty{ min-height:180px; }
 
@@ -488,11 +501,15 @@ html.valki-chat-open [id*="menu" i]{
 .valki-chat-form{
   border-top:1px solid rgba(255,255,255,.08);
   background:linear-gradient(to top,#050505,#080808);
-  padding:12px 16px calc(10px + env(safe-area-inset-bottom));
+  padding:12px 0 calc(10px + env(safe-area-inset-bottom));
+  width:100%;
+  max-width:980px;
 }
 .valki-chat-form-inner{
-  max-width:920px;
+  max-width:760px;
   margin:0 auto;
+  padding:0 16px;
+  box-sizing:border-box;
 }
 
 /* Message pill becomes more ChatGPT-ish on grow */
@@ -610,11 +627,13 @@ html.valki-chat-open [id*="menu" i]{
 
 /* Attachments tray */
 .valki-attachments{
-  max-width:920px;
+  max-width:760px;
   margin:8px auto 0;
   display:flex;
   gap:10px;
   flex-wrap:wrap;
+  padding:0 16px;
+  box-sizing:border-box;
 }
 .valki-attachment{
   position:relative;
@@ -893,6 +912,15 @@ html.valki-chat-open [id*="menu" i]{
   .valki-chat-inner{ padding:8px 10px; }
   .valki-chat-send{ width:38px; height:38px; }
   .valki-chat-attach{ width:38px; height:38px; }
+}
+
+.valki-root.valki-hero-mode .valki-messages{
+  display:none;
+}
+.valki-root.valki-hero-mode .valki-chat-form{
+  border-top:none;
+  padding-top:8px;
+}
 }`;
     (document.head || document.getElementsByTagName('head')[0] || document.documentElement).appendChild(styleTag);
 
@@ -1100,7 +1128,9 @@ html.valki-chat-open [id*="menu" i]{
 </div>`;
     const root = container.firstElementChild;
     if (!root) return;
-    document.body.appendChild(root);
+
+    const mount = document.getElementById('valki-mount') || document.body;
+    mount.appendChild(root);
 
     const scriptTag = document.createElement('script');
     scriptTag.textContent = `(function(){
@@ -1377,6 +1407,17 @@ html.valki-chat-open [id*="menu" i]{
     deleteAllBtn.style.pointerEvents = isBusy ? "none" : "";
   }
 
+  function updateHeroState(){
+    const hero = !hasAnyRealMessages();
+    if (messagesEl){
+      messagesEl.style.display = hero ? "none" : "";
+      messagesEl.setAttribute("aria-hidden", hero ? "true" : "false");
+    }
+    if (root){
+      root.classList.toggle("valki-hero-mode", hero);
+    }
+  }
+
   /* ===============================
      Guest meter
   ================================ */
@@ -1422,7 +1463,14 @@ html.valki-chat-open [id*="menu" i]{
       const raw = localStorage.getItem(HISTORY_KEY);
       const arr = safeJsonParse(raw, []);
       if (!Array.isArray(arr)) return [];
-      return arr.filter(x => x && (x.type==="user"||x.type==="bot") && typeof x.text==="string");
+      return arr
+        .filter(x => x && (x.type==="user"||x.type==="bot"))
+        .map(x => ({
+          type: x.type === "bot" ? "bot" : "user",
+          text: (typeof x.text === "string") ? x.text : "",
+          images: Array.isArray(x.images) ? x.images : undefined
+        }))
+        .filter(x => (x.text && x.text.length) || (Array.isArray(x.images) && x.images.length));
     }catch{
       return [];
     }
@@ -1486,62 +1534,76 @@ html.valki-chat-open [id*="menu" i]{
   /* ===============================
      Messages UI
   ================================ */
-function createMessageRow({ type, text, images }){
-  const row = document.createElement("div");
-  row.className = "valki-msg-row " + (type === "user" ? "user" : "bot");
+  function createMessageRow({ type, text, images }){
+    const row = document.createElement("div");
+    row.className = "valki-msg-row " + (type === "user" ? "user" : "bot");
 
-  if (type === "bot"){
-    const avatarWrap = document.createElement("div");
-    avatarWrap.className = "valki-bot-avatar-wrap";
-    const avatar = document.createElement("img");
-    avatar.className = "valki-bot-avatar";
-    avatar.src = AVATAR_URL;
-    avatar.alt = "Valki icon";
-    avatarWrap.appendChild(avatar);
-    row.appendChild(avatarWrap);
-  }
-
-  const bubble = document.createElement("div");
-  bubble.className = "valki-msg-bubble";
-
-  // tekst
-  if (type === "bot"){
-    bubble.innerHTML = renderMarkdown(text || "");
-    hardenLinks(bubble);
-  } else {
-    bubble.textContent = text || "";
-  }
-
-  // images (dataUrl or url)
-  if (Array.isArray(images) && images.length){
-    const grid = document.createElement("div");
-    grid.className = "valki-img-grid";
-    for (const src of images){
-      const img = document.createElement("img");
-      img.className = "valki-inline-img";
-      img.src = String(src || "");
-      img.alt = "uploaded image";
-      img.loading = "lazy";
-      grid.appendChild(img);
+    if (type === "bot"){
+      const avatarWrap = document.createElement("div");
+      avatarWrap.className = "valki-bot-avatar-wrap";
+      const avatar = document.createElement("img");
+      avatar.className = "valki-bot-avatar";
+      avatar.src = AVATAR_URL;
+      avatar.alt = "Valki icon";
+      avatarWrap.appendChild(avatar);
+      row.appendChild(avatarWrap);
     }
-    bubble.appendChild(grid);
+
+    const bubble = document.createElement("div");
+    bubble.className = "valki-msg-bubble";
+    const normalizedImages = Array.isArray(images)
+      ? images.map((img)=> {
+          if (img && typeof img === "object"){
+            const src = img.dataUrl || img.url || img.src;
+            const alt = img.name || "uploaded image";
+            if (src) return { src:String(src), alt };
+            return null;
+          }
+          if (img) return { src:String(img), alt:"uploaded image" };
+          return null;
+        }).filter(Boolean)
+      : [];
+
+    // tekst
+    if (type === "bot"){
+      bubble.innerHTML = renderMarkdown(typeof text === "string" ? text : "");
+      hardenLinks(bubble);
+    } else {
+      bubble.textContent = typeof text === "string" ? text : "";
+    }
+
+    // images (dataUrl or url)
+    if (normalizedImages.length){
+      const grid = document.createElement("div");
+      grid.className = "valki-img-grid";
+      for (const imgData of normalizedImages){
+        const img = document.createElement("img");
+        img.className = "valki-inline-img";
+        img.src = imgData.src;
+        img.alt = imgData.alt || "uploaded image";
+        img.loading = "lazy";
+        grid.appendChild(img);
+      }
+      bubble.appendChild(grid);
+    }
+
+    row.appendChild(bubble);
+    return row;
   }
 
-  row.appendChild(bubble);
-  return row;
-}
-
-async function addMessage({ type, text, images }){
-  const stick = isNearBottom(messagesEl);
-  if (type === "bot") await ensureMarkdownLibs();
-  messagesInner.appendChild(createMessageRow({ type, text, images }));
-  scrollToBottom(stick);
-  updateDeleteButtonVisibility();
-}
+  async function addMessage({ type, text, images } = {}){
+    const stick = isNearBottom(messagesEl);
+    if (type === "bot") await ensureMarkdownLibs();
+    messagesInner.appendChild(createMessageRow({ type, text, images }));
+    scrollToBottom(stick);
+    updateDeleteButtonVisibility();
+    updateHeroState();
+  }
 
   function clearMessagesUI(){
     messagesInner.innerHTML = "";
     updateDeleteButtonVisibility();
+    updateHeroState();
   }
 
   function createTypingRow(){
@@ -1708,8 +1770,8 @@ async function addMessage({ type, text, images }){
     for (const f of files){
       if (attachments.length >= MAX_FILES) break;
 
-      const t = String(f.type || "");
-      const ok = (t === "image/jpeg" || t === "image/png");
+      const t = String(f.type || "").toLowerCase();
+      const ok = (t === "image/jpeg" || t === "image/png" || t === "image/jpg");
       if (!ok) continue;
 
       if (f.size > MAX_BYTES) continue;
@@ -1900,12 +1962,13 @@ async function addMessage({ type, text, images }){
         const text = typeof m.message === "string"
           ? m.message
           : (typeof m.content === "string" ? m.content : "");
-        const images = Array.isArray(m.images) ? m.images.map(x => String(x || "")) : undefined;
+        const images = Array.isArray(m.images) ? m.images : undefined;
         await addMessage({ type, text, images });
       }
 
       scrollToBottom(true);
       updateDeleteButtonVisibility();
+      updateHeroState();
 
       if (forceOpen && !isChatOpen()) openOverlay();
       return true;
@@ -1970,10 +2033,11 @@ async function addMessage({ type, text, images }){
   async function renderGuestHistoryToUI(){
     clearMessagesUI();
     for (const m of guestHistory){
-      await addMessage({ type:m.type, text:m.text });
+      await addMessage({ type:m.type, text:m.text, images:m.images });
     }
     scrollToBottom(true);
     updateDeleteButtonVisibility();
+    updateHeroState();
   }
 
   /* ===============================
@@ -2010,10 +2074,16 @@ async function addMessage({ type, text, images }){
     isSending = true;
     setSendingState(true);
 
-    await addMessage({ type:"user", text:q });
+    const imagesForSend = attachments.map(a => ({
+      name: a.name,
+      type: a.type,
+      dataUrl: a.dataUrl
+    }));
+
+    await addMessage({ type:"user", text:q, images: imagesForSend });
 
     if (!isLoggedIn()){
-      guestHistory.push({ type:"user", text:q });
+      guestHistory.push({ type:"user", text:q, images: imagesForSend });
       saveGuestHistory(guestHistory);
       bumpGuestCount();
     }
@@ -2023,11 +2093,7 @@ async function addMessage({ type, text, images }){
     const payload = {
       message: q,
       clientId,
-      images: attachments.map(a => ({
-        name: a.name,
-        type: a.type,
-        dataUrl: a.dataUrl
-      }))
+      images: imagesForSend
     };
 
     const headers = { "Content-Type":"application/json" };
@@ -2232,6 +2298,7 @@ async function addMessage({ type, text, images }){
     }
 
     updateDeleteButtonVisibility();
+    updateHeroState();
     clampComposer();
   })();
 })();`;
