@@ -1439,6 +1439,7 @@ html.valki-chat-open header.valki-site-header{
   ================================ */
   const $ = (id)=>document.getElementById(id);
   const docStyle = document.documentElement && document.documentElement.style;
+  let vhRaf = null;
 
   const bgCanvas    = $("valki-bg");
   const root        = $("valki-root");
@@ -1694,7 +1695,6 @@ html.valki-chat-open header.valki-site-header{
 
   const DEBUG = !!window.__VALKI_DEBUG__;
   const overlayCleanupTimers = new WeakMap();
-  let vhRaf = null;
 
   function nowIso(){ return new Date().toISOString(); }
   function describeEl(el){
