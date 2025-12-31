@@ -2613,6 +2613,13 @@ html.valki-chat-open header.valki-site-header{
 
     try{
       const r = await fetch(API_MESSAGES, { headers:{ Authorization:"Bearer " + tok } });
+      if (r.status === 401){
+        clearAuthToken();
+        me = null;
+        updateSessionLabel();
+        updateLoginOutButtonLabel();
+        return false;
+      }
       if (!r.ok) return false;
 
       const j = await r.json().catch(()=>null);
@@ -2933,11 +2940,19 @@ html.valki-chat-open header.valki-site-header{
 
   async function openFromBadge(e){
     if (e){ e.preventDefault(); e.stopPropagation(); }
+    openOverlay();
     if (isLoggedIn()){
-      await loadLoggedInMessagesToUI({ forceOpen:true });
+      let loaded = false;
+      try{
+        loaded = await loadLoggedInMessagesToUI({ forceOpen:false });
+      }catch{
+        loaded = false;
+      }
+      if (!loaded){
+        await addMessage({ type:"bot", text:"Ik kan je accountgeschiedenis nu niet laden… probeer opnieuw of log uit/in" });
+      }
       return;
     }
-    openOverlay();
     await renderGuestHistoryToUI();
     if (guestHardBlocked()) openAuthOverlay({ hard:true });
   }
