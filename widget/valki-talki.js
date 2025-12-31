@@ -59,8 +59,9 @@
   --vvh: 100dvh;
   --vvTop: 0px;
   --vvOffset: 0px;
+  --valki-kb: 0px;
   --composer-h: 88px;
-  --valki-chat-gap: calc(var(--composer-h) + var(--vvOffset));
+  --valki-chat-gap: calc(var(--composer-h) + var(--valki-kb));
 }
 
 #valki-bg{
@@ -570,7 +571,7 @@ html.valki-chat-open .valki-logout-overlay{
   flex-direction:column;
   align-items:stretch;
   justify-content:flex-start;
-  padding:0 16px;
+  padding:0 16px var(--valki-kb);
 }
 .valki-overlay.is-visible .valki-modal{
   opacity:1;
@@ -697,7 +698,7 @@ html.valki-chat-open header.valki-site-header{
 
 .valki-notice{
   position: sticky;
-  bottom: calc(12px + env(safe-area-inset-bottom));
+  bottom: calc(12px + env(safe-area-inset-bottom) + var(--valki-kb));
   margin: 0 auto 10px;
   max-width: 560px;
   width: calc(100% - 32px);
@@ -712,7 +713,6 @@ html.valki-chat-open header.valki-site-header{
   line-height: 1.45;
   text-align:center;
   display:block;
-  position:relative;
 }
 .valki-notice-text{
   margin:0;
@@ -804,7 +804,7 @@ html.valki-chat-open header.valki-site-header{
   border-top:1px solid rgba(255,255,255,.08);
   background:linear-gradient(to top,#050505,#080808);
   --valki-cookie-reserve: 0px !important;
-  padding:12px 0 var(--valki-chat-pad-bottom) !important;
+  padding:12px 0 calc(var(--valki-chat-pad-bottom) + var(--valki-kb)) !important;
   width:100%;
   margin-top:auto;
 }
@@ -1586,41 +1586,57 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     const vv = window.visualViewport;
     const docEl = document.documentElement;
     const layoutH = getViewportHeight();
-    const vvh = vv ? vv.height : layoutH;
-    const vvTop = vv ? (vv.offsetTop || 0) : 0;
-    const vvOffset = Math.max(0, (window.innerHeight || layoutH) - vvh - vvTop);
+    const innerH = Math.max(layoutH || 0, window.innerHeight || 0, 0);
+    const clamp = (v, min, max)=> Math.min(Math.max(isFinite(v) ? v : min, min), max);
+
+    let vvh = vv && isFinite(vv.height) && vv.height > 0 ? vv.height : layoutH || innerH;
+    if (!vvh || !isFinite(vvh)) vvh = innerH || layoutH || 0;
+    let vvTop = vv && isFinite(vv.offsetTop) ? vv.offsetTop : 0;
+    vvTop = Math.max(0, vvTop || 0);
+
+    const baseHeight = innerH || layoutH || 600;
+    const maxHeight = baseHeight + 160;
+    const minHeight = Math.max(120, Math.min(baseHeight, baseHeight * 0.5));
+    const resolvedHeight = clamp(vvh || baseHeight, minHeight, maxHeight);
+
+    let vvOffset = (window.innerHeight || baseHeight) - resolvedHeight - vvTop;
+    if (!isFinite(vvOffset)) vvOffset = 0;
+    vvOffset = clamp(vvOffset, 0, baseHeight * 0.75);
+
+    const valkiKb = vvOffset;
     const stickToBottom = messagesEl ? isNearBottom(messagesEl) : false;
 
-    const resolvedHeight = vvh || layoutH || 0;
     docEl.style.setProperty("--vvh", resolvedHeight + "px");
     docEl.style.setProperty("--vvTop", vvTop + "px");
     docEl.style.setProperty("--vvOffset", vvOffset + "px");
+    docEl.style.setProperty("--valki-kb", valkiKb + "px");
 
     const composerRect = chatForm ? chatForm.getBoundingClientRect() : null;
     const composerH = composerRect ? composerRect.height : 0;
     docEl.style.setProperty("--composer-h", composerH + "px");
-    const chatGap = Math.max(0, composerH + vvOffset);
+    const chatGap = Math.max(0, composerH + valkiKb);
     docEl.style.setProperty("--valki-chat-gap", chatGap + "px");
 
     if (isChatOpen() && stickToBottom && messagesEl){
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
-    logDebug("syncViewportLayout", overlay, { reason, vvh: resolvedHeight, vvTop, composerH, vvOffset, chatGap, nearBottom: stickToBottom });
+    logDebug("syncViewportLayout", overlay, { reason, vvh: resolvedHeight, vvTop, composerH, vvOffset, valkiKb, chatGap, nearBottom: stickToBottom });
   }
 
   function bindViewportSyncListeners(){
     if (viewportSyncBound) return;
     const vv = window.visualViewport;
+    const runSettled = (reason)=> requestAnimationFrame(()=> setTimeout(()=> syncViewportLayout(reason), 35));
     if (vv){
-      vv.addEventListener("resize", ()=> syncViewportLayout("vv-resize"), { passive:true });
-      vv.addEventListener("scroll", ()=> syncViewportLayout("vv-scroll"), { passive:true });
+      vv.addEventListener("resize", ()=> runSettled("vv-resize"), { passive:true });
+      vv.addEventListener("scroll", ()=> runSettled("vv-scroll"), { passive:true });
     }
-    window.addEventListener("resize", ()=> syncViewportLayout("win-resize"), { passive:true });
-    window.addEventListener("orientationchange", ()=> setTimeout(()=> syncViewportLayout("orientation"), 50), { passive:true });
+    window.addEventListener("resize", ()=> runSettled("win-resize"), { passive:true });
+    window.addEventListener("orientationchange", ()=> setTimeout(()=> syncViewportLayout("orientation"), 80), { passive:true });
     if (chatInput){
-      chatInput.addEventListener("focus", ()=> syncViewportLayout("focus"));
-      chatInput.addEventListener("blur", ()=> syncViewportLayout("blur"));
+      chatInput.addEventListener("focus", ()=> runSettled("focus"));
+      chatInput.addEventListener("blur", ()=> runSettled("blur"));
     }
     viewportSyncBound = true;
   }
