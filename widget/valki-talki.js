@@ -1918,7 +1918,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       privacy:
         "🔒 الخصوصية: شارك فقط ما هو ضروري. Valki Talki ليست من شركات التقنية الكبرى — لكن جهازك أو متصفحك قد يكون كذلك. لا تشارك أبدًا عبارات الاسترداد أو المفاتيح الخاصة أو رموز الاستعادة وقلّل البيانات الشخصية."
     },
-    ja: {
+  ja: {
       privacy:
         "🔒 プライバシー：必要な情報のみ共有してください。Valki Talki はビッグテックではありませんが、端末やブラウザは該当する場合があります。シードフレーズ、秘密鍵、復元コードは決して共有せず、個人情報は最小限にしてください。"
     },
@@ -1932,21 +1932,142 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     }
   };
 
-  const signalCopy = {
-    en: ["Crypto Stuck?", "Explained."],
-    nl: ["Crypto problemen?", "Uitgelegd."],
-    de: ["Fest in Krypto?", "Erklärt."],
-    fr: ["Bloqué en crypto ?", "Expliqué."],
-    es: ["¿Atascado en cripto?", "Explicado."],
-    it: ["Bloccato nel crypto?", "Spiegato."],
-    pt: ["Preso no cripto?", "Explicado."],
-    pl: ["Utknąłeś w krypto?", "Wyjaśnione."],
-    ja: ["暗号資産で行き詰まってる？", "解説します。"],
-    zh: ["加密货币卡住了？", "为你解释。"],
-    ko: ["크립토에서 막혔나요?", "설명해드립니다."],
-    ar: ["عالِق في عالم الكريبتو؟", "نوضّح لك."],
-    tr: ["Kriptoda mı takıldın?", "Açıklıyoruz."]
+  const landingCopy = {
+    en: [
+      ["Crypto problem?", "Explained."],
+      ["Lost in crypto?", "Let’s talk."],
+      ["Crypto confusion?", "Cleared."],
+      ["Crypto questions?", "Answered."],
+      ["Stuck in crypto?", "We help."],
+      ["Crypto talk?", "Anytime."],
+      ["Need crypto help?", "We’re here."],
+      ["Crypto clarity.", "No noise."],
+      ["Crypto issues?", "Solved."],
+      ["Let’s talk crypto.", "Clearly."]
+    ],
+    nl: [
+      ["Crypto problemen?", "Uitgelegd."],
+      ["Vast in crypto?", "Wij helpen."],
+      ["Crypto verwarring?", "Helder."],
+      ["Crypto vragen?", "Beantwoord."],
+      ["Crypto hulp?", "Direct."],
+      ["Praat crypto.", "Helder."],
+      ["Crypto chaos?", "Rust."],
+      ["Crypto vast?", "Opgelost."],
+      ["Crypto uitleg.", "Zonder ruis."],
+      ["Samen crypto.", "Begrijpen."]
+    ],
+    de: [
+      ["Krypto Probleme?", "Erklärt."],
+      ["Fest in Krypto?", "Wir helfen."],
+      ["Krypto Fragen?", "Beantwortet."],
+      ["Krypto Chaos?", "Klarheit."],
+      ["Krypto Hilfe?", "Jetzt."],
+      ["Krypto Talk?", "Einfach."],
+      ["Krypto verstehen.", "Ohne Lärm."],
+      ["Krypto Thema?", "Geklärt."],
+      ["Krypto Blockade?", "Gelöst."],
+      ["Reden wir Krypto.", "Klar."]
+    ],
+    fr: [
+      ["Problème crypto ?", "Expliqué."],
+      ["Bloqué en crypto ?", "On aide."],
+      ["Questions crypto ?", "Réponses."],
+      ["Crypto confuse ?", "Clair."],
+      ["Besoin d’aide ?", "Crypto."],
+      ["Parlons crypto.", "Simplement."],
+      ["Crypto clair.", "Sans bruit."],
+      ["Crypto bloqué ?", "Résolu."],
+      ["Aide crypto ?", "Ici."],
+      ["Crypto expliqué.", "Calme."]
+    ],
+    es: [
+      ["Problemas crypto?", "Explicado."],
+      ["Atascado en cripto?", "Hablemos."],
+      ["Dudas crypto?", "Resueltas."],
+      ["Crypto confuso?", "Claro."],
+      ["Ayuda crypto?", "Aquí."],
+      ["Hablemos crypto.", "Simple."],
+      ["Crypto claro.", "Sin ruido."],
+      ["Crypto bloqueado?", "Solucionado."],
+      ["Tema crypto?", "Aclarado."],
+      ["Cripto fácil.", "Directo."]
+    ],
+    it: [
+      ["Problemi crypto?", "Spiegati."],
+      ["Bloccato nel crypto?", "Parliamo."],
+      ["Dubbi crypto?", "Chiariti."],
+      ["Crypto confuso?", "Chiaro."],
+      ["Aiuto crypto?", "Qui."],
+      ["Parliamo crypto.", "Semplice."],
+      ["Crypto chiaro.", "Senza rumore."],
+      ["Crypto fermo?", "Risolto."],
+      ["Tema crypto?", "Spiegato."],
+      ["Crypto facile.", "Pulito."]
+    ],
+    pt: [
+      ["Problemas cripto?", "Explicado."],
+      ["Preso no cripto?", "Vamos falar."],
+      ["Dúvidas cripto?", "Resolvidas."],
+      ["Cripto confuso?", "Claro."],
+      ["Ajuda cripto?", "Aqui."],
+      ["Vamos cripto.", "Simples."],
+      ["Cripto claro.", "Sem ruído."],
+      ["Cripto travado?", "Resolvido."],
+      ["Tema cripto?", "Explicado."],
+      ["Cripto direto.", "Limpo."]
+    ],
+    pl: [
+      ["Problem z krypto?", "Wyjaśniony."],
+      ["Utknąłeś w krypto?", "Pogadamy."],
+      ["Pytania krypto?", "Odpowiedzi."],
+      ["Krypto chaos?", "Jasność."],
+      ["Pomoc krypto?", "Tu."],
+      ["Rozmowa krypto.", "Prosto."],
+      ["Krypto jasno.", "Bez szumu."],
+      ["Krypto blokada?", "Rozwiązana."],
+      ["Temat krypto?", "Wyjaśniony."],
+      ["Krypto prosto.", "Czysto."]
+    ],
+    ja: [
+      ["暗号資産の悩み？", "解決。"],
+      ["暗号で迷子？", "話そう。"],
+      ["暗号の疑問？", "解説。"],
+      ["暗号が難しい？", "シンプル。"],
+      ["暗号サポート？", "ここ。"],
+      ["暗号の話。", "わかりやすく。"],
+      ["暗号クリア。", "ノイズなし。"],
+      ["暗号で停止？", "解消。"],
+      ["暗号テーマ？", "整理。"],
+      ["暗号を理解。", "一緒に。"]
+    ],
+    zh: [
+      ["加密问题？", "解释清楚。"],
+      ["被加密困住？", "聊聊。"],
+      ["加密疑问？", "解答。"],
+      ["加密混乱？", "清晰。"],
+      ["需要加密帮助？", "这里。"],
+      ["聊聊加密。", "简单。"],
+      ["加密清晰。", "无噪音。"],
+      ["加密卡住？", "解决。"],
+      ["加密主题？", "说明。"],
+      ["理解加密。", "一起。"]
+    ],
+    ko: [
+      ["크립토 문제?", "해결."],
+      ["크립토 막힘?", "이야기해요."],
+      ["크립토 질문?", "답변."],
+      ["크립토 혼란?", "명확."],
+      ["크립토 도움?", "여기."],
+      ["크립토 대화.", "간단히."],
+      ["크립토 클리어.", "노이즈 없음."],
+      ["크립토 정체?", "해결됨."],
+      ["크립토 주제?", "설명."],
+      ["크립토 이해.", "함께."]
+    ]
   };
+
+  let selectedLanding;
 
   function getLocaleKey(copyMap){
     const langs = (navigator.languages && navigator.languages.length)
@@ -1965,12 +2086,21 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     return getLocaleKey(searchCopy);
   }
 
-  function applySignalLockLocale(loc){
+  function pickLandingLines(){
+    const navLang = String(navigator.language || "en").slice(0,2).toLowerCase();
+    const lang = landingCopy[navLang] ? navLang : "en";
+    const variants = landingCopy[lang] || landingCopy.en;
+    const fallback = (landingCopy.en && landingCopy.en[0]) || ["Crypto problem?", "Explained."];
+    const choice = variants[Math.floor(Math.random() * variants.length)] || fallback;
+    selectedLanding = { lang, lines: choice };
+    return selectedLanding;
+  }
+
+  function applySignalLockLocale(){
     if (!signalLock || !signalLineMain || !signalLineSub) return;
-    const lang = (loc || "en").toLowerCase().split("-")[0];
-    const txt = signalCopy[lang] || signalCopy.en;
-    signalLineMain.textContent = txt[0];
-    signalLineSub.textContent = txt[1];
+    const { lang, lines } = selectedLanding || pickLandingLines();
+    signalLineMain.textContent = lines[0];
+    signalLineSub.textContent = lines[1];
     signalLock.setAttribute("lang", lang);
     if (lang === "ar") signalLock.setAttribute("dir","rtl");
     else signalLock.removeAttribute("dir");
@@ -1988,7 +2118,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     const txt = searchCopy[loc] || searchCopy.en;
     searchInput.placeholder = txt;
     chatInput.placeholder = txt;
-    applySignalLockLocale(loc);
+    applySignalLockLocale();
     showPrivacyNoticeIfNeeded();
   }
 
