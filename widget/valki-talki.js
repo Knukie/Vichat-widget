@@ -1479,6 +1479,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   const API_MESSAGES     = BASE_URL + "/api/messages";
   const API_CLEAR        = BASE_URL + "/api/clear";
   const API_IMPORT_GUEST = BASE_URL + "/api/import-guest";
+  const API_UPLOAD       = BASE_URL + "/api/upload";
 
   const AUTH_DISCORD_START = BASE_URL + "/auth/discord";
   const AUTH_GOOGLE_START  = BASE_URL + "/auth/google";
@@ -2409,6 +2410,25 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   /* ===============================
      Guest history
   ================================ */
+  function sanitizeImageMeta(img){
+    if (!img || typeof img !== "object") return null;
+    const rawUrl = img.url || img.src;
+    if (!rawUrl || String(rawUrl).startsWith("data:")) return null;
+    const meta = {
+      url: String(rawUrl)
+    };
+    if (img.name) meta.name = String(img.name);
+    if (img.type) meta.type = String(img.type);
+    if (Number.isFinite(Number(img.size))) meta.size = Number(img.size);
+    return meta;
+  }
+
+  function sanitizeImagesList(images){
+    return Array.isArray(images)
+      ? images.map(sanitizeImageMeta).filter(Boolean)
+      : [];
+  }
+
   function loadGuestHistory(){
     try{
       const raw = localStorage.getItem(HISTORY_KEY);
@@ -2419,7 +2439,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
         .map(x => ({
           type: x.type === "bot" ? "bot" : "user",
           text: (typeof x.text === "string") ? x.text : "",
-          images: Array.isArray(x.images) ? x.images : (Array.isArray(x.attachments) ? x.attachments : undefined)
+          images: sanitizeImagesList(Array.isArray(x.images) ? x.images : (Array.isArray(x.attachments) ? x.attachments : undefined))
         }))
         .filter(x => (x.text && x.text.length) || (Array.isArray(x.images) && x.images.length));
     }catch{
@@ -2505,12 +2525,20 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     const normalizedImages = Array.isArray(images)
       ? images.map((img)=> {
           if (img && typeof img === "object"){
-            const src = img.dataUrl || img.url || img.src;
+            const rawUrl = img.url || img.src;
+            const previewUrl = img.previewUrl;
+            const safeUrl = rawUrl && !String(rawUrl).startsWith("data:") ? String(rawUrl) : "";
+            const safePreview = previewUrl && !String(previewUrl).startsWith("data:") ? String(previewUrl) : "";
+            const src = safeUrl || safePreview;
+            if (!src) return null;
             const alt = img.name || "uploaded image";
-            if (src) return { src:String(src), alt };
-            return null;
+            return { src, alt, clickUrl: safeUrl || safePreview };
           }
-          if (img) return { src:String(img), alt:"uploaded image" };
+          if (img){
+            const safeSrc = String(img);
+            if (safeSrc.startsWith("data:")) return null;
+            return { src:safeSrc, alt:"uploaded image", clickUrl: safeSrc };
+          }
           return null;
         }).filter(Boolean)
       : [];
@@ -2523,7 +2551,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       bubble.textContent = typeof text === "string" ? text : "";
     }
 
-    // images (dataUrl or url)
+    // images (url/preview)
     if (normalizedImages.length){
       const grid = document.createElement("div");
       grid.className = "valki-img-grid";
@@ -2535,7 +2563,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
         img.loading = "lazy";
         img.addEventListener("click", ()=>{
           try{
-            window.open(imgData.src, "_blank", "noopener,noreferrer");
+            window.open(imgData.clickUrl || imgData.src, "_blank", "noopener,noreferrer");
           }catch{}
         });
         grid.appendChild(img);
@@ -2769,7 +2797,8 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   /* ===============================
      Attachments (JPEG/PNG)
   ================================ */
-  let attachments = []; // { id, name, type, dataUrl }
+  let attachments = []; // { id, name, type, url, size?, previewUrl }
+  let pendingAttachRefocus = false;
 
   async function showAttachmentError(msg){
     if (!msg) return;
@@ -2778,6 +2807,19 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       guestHistory.push({ type:"bot", text:msg });
       saveGuestHistory(guestHistory);
     }
+  }
+
+  function revokeAttachmentPreview(a){
+    if (a && a.previewUrl){
+      try{ URL.revokeObjectURL(a.previewUrl); }catch{}
+    }
+  }
+
+  function clearAttachments(){
+    for (const a of attachments){
+      revokeAttachmentPreview(a);
+    }
+    attachments = [];
   }
 
   function showAttachTray(){
@@ -2794,7 +2836,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       wrap.className = "valki-attachment";
 
       const img = document.createElement("img");
-      img.src = a.dataUrl;
+      img.src = a.previewUrl || a.url;
       img.alt = a.name || "attachment";
 
       const rm = document.createElement("button");
@@ -2803,6 +2845,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       rm.textContent = "×";
       rm.addEventListener("click", ()=>{
         attachments = attachments.filter(x => x.id !== a.id);
+        revokeAttachmentPreview(a);
         showAttachTray();
         clampComposer();
       });
@@ -2814,13 +2857,36 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     syncViewportLayout("attachments");
   }
 
-  function readFileAsDataURL(file){
-    return new Promise((resolve, reject)=>{
-      const r = new FileReader();
-      r.onload = ()=> resolve(String(r.result || ""));
-      r.onerror = reject;
-      r.readAsDataURL(file);
+  async function uploadFile(file){
+    const form = new FormData();
+    form.append("file", file);
+
+    const headers = {};
+    const tok = getAuthToken();
+    if (tok) headers.Authorization = "Bearer " + tok;
+
+    const res = await fetch(API_UPLOAD, {
+      method:"POST",
+      headers,
+      body: form
     });
+
+    if (!res.ok){
+      throw new Error("Upload failed (" + res.status + ")");
+    }
+
+    const j = await res.json().catch(()=> null);
+    const fileMeta = (j && j.file) ? j.file : j;
+    if (!fileMeta || !fileMeta.url){
+      throw new Error("Upload response missing url");
+    }
+
+    return {
+      url: String(fileMeta.url),
+      name: fileMeta.name || file.name || "image",
+      type: fileMeta.type || file.type || "image/jpeg",
+      size: Number.isFinite(Number(fileMeta.size)) ? Number(fileMeta.size) : file.size
+    };
   }
 
   async function addFiles(fileList){
@@ -2844,20 +2910,25 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
         continue;
       }
 
-      const dataUrl = await readFileAsDataURL(f).catch(()=> "");
-      if (!dataUrl){
-        errors.add("Could not load " + (f.name || "image") + ".");
-        continue;
+      const previewUrl = (()=>{ try{ return URL.createObjectURL(f); }catch{ return ""; } })();
+      try{
+        const uploaded = await uploadFile(f);
+        attachments.push({
+          id: genId("att"),
+          name: uploaded.name,
+          type: uploaded.type,
+          url: uploaded.url,
+          size: uploaded.size,
+          previewUrl
+        });
+      }catch(e){
+        if (previewUrl) revokeAttachmentPreview({ previewUrl });
+        const name = f.name || "image";
+        errors.add("Could not upload " + name + " (" + (e && e.message ? e.message : "network") + ").");
       }
-
-      attachments.push({
-        id: genId("att"),
-        name: f.name || "image",
-        type: t,
-        dataUrl
-      });
     }
     showAttachTray();
+    syncViewportLayout("attachments-uploaded");
     if (errors.size){
       for (const err of errors){
         await showAttachmentError(err);
@@ -3061,9 +3132,11 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
         const text = typeof m.message === "string"
           ? m.message
           : (typeof m.content === "string" ? m.content : "");
-        const images = Array.isArray(m.images)
-          ? m.images
-          : (Array.isArray(m.attachments) ? m.attachments : undefined);
+        const images = sanitizeImagesList(
+          Array.isArray(m.images)
+            ? m.images
+            : (Array.isArray(m.attachments) ? m.attachments : undefined)
+        );
         await addMessage({ type, text, images });
       }
 
@@ -3115,7 +3188,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     searchInput.disabled = false;
     setAttachmentUiDisabled(false);
 
-    attachments = [];
+    clearAttachments();
     showAttachTray();
 
     guestHistory = [];
@@ -3181,15 +3254,24 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     isSending = true;
     setSendingState(true);
 
-    const imagesForSend = attachments.map(a => ({
+    const validAttachments = attachments.filter(a => a && a.url);
+    const imagesForSend = validAttachments.map(a => ({
+      url: a.url,
       name: a.name,
       type: a.type,
-      dataUrl: a.dataUrl
+      size: a.size
+    }));
+    const imagesForUi = validAttachments.map(a => ({
+      url: a.url,
+      name: a.name,
+      type: a.type,
+      size: a.size,
+      previewUrl: a.previewUrl
     }));
 
     const messageText = q || (hasImages ? "[image]" : "");
 
-    await addMessage({ type:"user", text:messageText, images: imagesForSend });
+    await addMessage({ type:"user", text:messageText, images: imagesForUi });
 
     if (!isLoggedIn()){
       guestHistory.push({ type:"user", text:messageText, images: imagesForSend });
@@ -3204,9 +3286,6 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       clientId,
       images: imagesForSend
     };
-    if (imagesForSend.length){
-      payload.attachments = imagesForSend;
-    }
 
     const headers = { "Content-Type":"application/json" };
     const tok = getAuthToken();
@@ -3262,7 +3341,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       setSendingState(false);
 
       // clear attachments after send attempt
-      attachments = [];
+      clearAttachments();
       showAttachTray();
 
       updateDeleteButtonVisibility();
@@ -3330,15 +3409,17 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   attachBtn.addEventListener("click", ()=>{
     if (chatInput.disabled || isSending) return;
     const stickToBottom = isNearBottom(messagesEl);
+    pendingAttachRefocus = stickToBottom;
     if (isiOS){
       blurChatInputSafe("attach-blur");
       requestAnimationFrame(()=>{
-        syncViewportLayout("attach-raf");
-        setTimeout(()=>{
-          syncViewportLayout("attach-timeout");
-          if (stickToBottom) scrollToBottom(true);
-          fileInput.click();
-        }, 80);
+        requestAnimationFrame(()=>{
+          syncViewportLayout("attach-pre-picker");
+          setTimeout(()=>{
+            syncViewportLayout("attach-pre-click");
+            fileInput.click();
+          }, 70);
+        });
       });
       return;
     }
@@ -3347,14 +3428,16 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   });
 
   fileInput.addEventListener("change", async ()=>{
-    const stickToBottom = isNearBottom(messagesEl);
+    const stickToBottom = isiOS ? pendingAttachRefocus : isNearBottom(messagesEl);
     await addFiles(fileInput.files);
     fileInput.value = "";
     clampComposer();
     if (isiOS){
+      pendingAttachRefocus = false;
       focusChatInputSafe("attach-refocus", { stickToBottom });
       return;
     }
+    pendingAttachRefocus = false;
     if (stickToBottom) scrollToBottom(true);
   });
 
