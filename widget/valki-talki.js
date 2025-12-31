@@ -1813,7 +1813,7 @@ html.valki-chat-open header.valki-site-header{
 
   const signalCopy = {
     en: ["Crypto Stuck?", "Explained."],
-    nl: ["Vast in crypto?", "Uitgelegd."],
+    nl: ["Crypto problemen?", "Uitgelegd."],
     de: ["Fest in Krypto?", "Erklärt."],
     fr: ["Bloqué en crypto ?", "Expliqué."],
     es: ["¿Atascado en cripto?", "Explicado."],
