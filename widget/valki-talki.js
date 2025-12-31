@@ -1883,69 +1883,136 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   };
 
   const noticeCopy = {
+    nl: {
+      label: "Privacy",
+      safety:
+        "Web3-regel: deel alleen wat nodig is. Valki Talki is geen big tech — maar jouw device/browser is dat soms wél. Post nooit seed phrases, private keys of herstelcodes, en houd persoonlijke data minimaal."
+    },
+
+    en: {
+      label: "Privacy",
+      safety:
+        "Web3 rule: share only what’s necessary. Valki Talki isn’t big tech — but your device/browser sometimes is. Never post seed phrases, private keys, or recovery codes, and keep personal data minimal."
+    },
+
+    de: {
+      label: "Datenschutz",
+      safety:
+        "Web3-Regel: Teile nur das Nötigste. Valki Talki ist nicht Big Tech — aber dein Gerät/Browser manchmal schon. Poste niemals Seed-Phrases, Private Keys oder Recovery-Codes und halte persönliche Daten minimal."
+    },
+
+    fr: {
+      label: "Confidentialité",
+      safety:
+        "Règle Web3 : partage uniquement le nécessaire. Valki Talki n’est pas de la big tech — mais ton appareil/navigateur l’est parfois. Ne publie jamais de seed phrase, clé privée ou code de récupération, et limite les infos perso."
+    },
+
+    es: {
+      label: "Privacidad",
+      safety:
+        "Regla Web3: comparte solo lo necesario. Valki Talki no es big tech — pero tu dispositivo/navegador a veces sí. Nunca publiques frases semilla, claves privadas ni códigos de recuperación, y minimiza los datos personales."
+    },
+
+    it: {
+      label: "Privacy",
+      safety:
+        "Regola Web3: condividi solo il necessario. Valki Talki non è big tech — ma il tuo dispositivo/browser a volte sì. Non inserire mai seed phrase, chiavi private o codici di recupero, e riduci al minimo i dati personali."
+    },
+
+    pt: {
+      label: "Privacidade",
+      safety:
+        "Regra Web3: compartilhe só o necessário. A Valki Talki não é big tech — mas seu dispositivo/navegador às vezes é. Nunca publique seed phrases, chaves privadas ou códigos de recuperação, e mantenha dados pessoais no mínimo."
+    },
+
+    pl: {
+      label: "Prywatność",
+      safety:
+        "Zasada Web3: udostępniaj tylko to, co konieczne. Valki Talki to nie big tech — ale Twoje urządzenie/przeglądarka czasem tak. Nigdy nie publikuj seed phrase, kluczy prywatnych ani kodów odzyskiwania i ogranicz dane osobowe."
+    },
+
+    tr: {
+      label: "Gizlilik",
+      safety:
+        "Web3 kuralı: yalnızca gerekli olanı paylaş. Valki Talki big tech değil — ama cihazın/tarayıcın bazen öyledir. Seed phrase, özel anahtar veya kurtarma kodlarını asla gönderme; kişisel veriyi minimumda tut."
+    },
+
+    ar: {
+      label: "الخصوصية",
+      safety:
+        "قاعدة Web3: شارك الحد الأدنى فقط. Valki Talki ليست من شركات التقنية الكبرى — لكن جهازك/متصفحك قد يكون كذلك. لا تنشر أبدًا عبارات الاسترداد أو المفاتيح الخاصة أو رموز الاستعادة، وقلّل البيانات الشخصية قدر الإمكان."
+    },
+
+    ja: {
+      label: "プライバシー",
+      safety:
+        "Web3の基本：必要最小限だけ共有。Valki Talkiはビッグテックではありません — ただし端末/ブラウザは別。シードフレーズ・秘密鍵・復元コードは絶対に投稿せず、個人情報は最小限に。"
+    },
+
+    ko: {
+      label: "개인정보",
+      safety:
+        "Web3 원칙: 필요한 것만 공유하세요. Valki Talki는 빅테크가 아니지만 — 기기/브라우저는 그럴 수 있습니다. 시드 문구, 개인 키, 복구 코드는 절대 게시하지 말고 개인정보는 최소화하세요."
+    },
+
+    zh: {
+      label: "隐私",
+      safety:
+        "Web3 规则：只分享必要信息。Valki Talki 不是大厂——但你的设备/浏览器有时是。切勿发布助记词、私钥或恢复代码，并尽量减少个人信息。"
+    }
+  };
+
+  const historyNoticeCopy = {
     en: {
       label: "Notice",
-      guestReady: "You’re all set. Let’s explore this together and bring clarity.",
       historyFail: "We couldn’t sync your chat right now. New messages will still work."
     },
     nl: {
       label: "Info",
-      guestReady: "Je bent klaar om te starten. Laten we samen helderheid brengen.",
       historyFail: "We kunnen je chat nu niet synchroniseren. Nieuwe berichten werken wel."
     },
     de: {
       label: "Hinweis",
-      guestReady: "Du kannst direkt starten. Lass uns gemeinsam Klarheit schaffen.",
       historyFail: "Dein Chat konnte gerade nicht synchronisiert werden. Neue Nachrichten funktionieren trotzdem."
     },
     fr: {
       label: "Info",
-      guestReady: "Tout est prêt. Explorons cela ensemble pour plus de clarté.",
       historyFail: "Impossible de synchroniser le chat pour le moment. Tu peux quand même envoyer des messages."
     },
     es: {
       label: "Info",
-      guestReady: "Todo está listo. Exploremos esto juntos para mayor claridad.",
       historyFail: "No se pudo sincronizar el chat ahora. Aun así puedes enviar mensajes."
     },
     it: {
       label: "Info",
-      guestReady: "Tutto è pronto. Esploriamolo insieme per fare chiarezza.",
       historyFail: "Impossibile sincronizzare la chat ora. Puoi comunque inviare messaggi."
     },
     pt: {
       label: "Info",
-      guestReady: "Está tudo pronto. Vamos explorar juntos e trazer clareza.",
       historyFail: "Não foi possível sincronizar o chat agora. Você ainda pode enviar mensagens."
     },
     pl: {
       label: "Informacja",
-      guestReady: "Wszystko gotowe. Odkryjmy to razem i znajdźmy jasność.",
       historyFail: "Nie udało się teraz zsynchronizować czatu. Nowe wiadomości będą nadal działać."
     },
     ja: {
       label: "お知らせ",
-      guestReady: "準備は整っています。一緒に探って理解を深めましょう。",
       historyFail: "現在チャットを同期できませんでした。新しいメッセージは引き続き送れます。"
     },
     zh: {
       label: "提示",
-      guestReady: "一切就绪。让我们一起探索，理清思路。",
       historyFail: "目前无法同步你的聊天记录，但新消息仍然可以发送。"
     },
     ko: {
       label: "안내",
-      guestReady: "준비되었습니다. 함께 탐색하며 명확하게 해봅시다.",
       historyFail: "지금 채팅을 동기화할 수 없습니다. 새 메시지는 계속 작동합니다."
     },
     ar: {
       label: "معلومة",
-      guestReady: "كل شيء جاهز. دعنا نستكشف الأمر معًا ونصل إلى الوضوح.",
       historyFail: "تعذّر الآن مزامنة محادثتك. ستستمر الرسائل الجديدة بالعمل."
     },
     tr: {
       label: "Bilgi",
-      guestReady: "Her şey hazır. Birlikte keşfedelim ve netlik kazanalım.",
       historyFail: "Sohbetini şu anda eşitleyemedik. Yeni mesajlar yine de çalışacak."
     }
   };
@@ -2010,6 +2077,12 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     const base = (loc||"en").toLowerCase().split("-")[0];
     const pack = noticeCopy[loc] || noticeCopy[base] || noticeCopy.en;
     return (pack && pack[key]) ? pack[key] : (noticeCopy.en[key] || "");
+  }
+  function tHistoryNotice(key){
+    const loc = pickLocale();
+    const base = (loc||"en").toLowerCase().split("-")[0];
+    const pack = historyNoticeCopy[loc] || historyNoticeCopy[base] || historyNoticeCopy.en;
+    return (pack && pack[key]) ? pack[key] : (historyNoticeCopy.en[key] || "");
   }
   applyLocale();
   preventSignalLockCopy();
@@ -2081,7 +2154,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   function removeSystemBanner(id){
     messagesInner.querySelectorAll('[data-valki-banner="' + id + '"]').forEach(n=>n.remove());
   }
-  function showSystemBannerOnce(id, text){
+  function showSystemBannerOnce(id, text, label){
     if (hasAnyRealMessages()) return;
     if (hasSystemBanner(id)) return;
 
@@ -2090,7 +2163,8 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     banner.setAttribute("data-valki-banner", id);
 
     const msg = document.createElement("div");
-    msg.innerHTML = "<strong>" + tNotice("label") + "</strong> — " + String(text || "");
+    const heading = label || tNotice("label");
+    msg.innerHTML = "<strong>" + String(heading || "") + "</strong> — " + String(text || "");
 
     const close = document.createElement("button");
     close.type = "button";
@@ -2107,7 +2181,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
 
   function ensureReadyNotice(){
     if (hasAnyRealMessages()) return;
-    showSystemBannerOnce("notice-ready", tNotice("guestReady"));
+    showSystemBannerOnce("notice-ready", tNotice("safety"), tNotice("label"));
   }
 
   function hideSystemBannersIfNeeded(){
@@ -3156,7 +3230,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       }
       if (!loaded){
         removeSystemBanner("notice-ready");
-        showSystemBannerOnce("history-fail", tNotice("historyFail"));
+        showSystemBannerOnce("history-fail", tHistoryNotice("historyFail"), tHistoryNotice("label"));
       }
       return;
     }
@@ -3208,7 +3282,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       const ok = await loadLoggedInMessagesToUI({ forceOpen:false });
       if (!ok && !hasAnyRealMessages()){
         removeSystemBanner("notice-ready");
-        showSystemBannerOnce("history-fail", tNotice("historyFail"));
+        showSystemBannerOnce("history-fail", tHistoryNotice("historyFail"), tHistoryNotice("label"));
       }
     } else {
       guestHistory = loadGuestHistory();
