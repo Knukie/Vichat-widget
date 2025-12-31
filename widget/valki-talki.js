@@ -679,6 +679,53 @@ html.valki-chat-open header.valki-site-header{
 }
 .valki-messages-inner:empty{ min-height:180px; }
 
+.valki-system-banner{
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 10px auto 10px;
+  width: 100%;
+  max-width: 720px;
+  box-sizing: border-box;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+
+  padding:10px 12px;
+  border-radius:14px;
+
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  backdrop-filter: blur(18px);
+
+  color: rgba(245,245,245,.92);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.valki-system-banner strong{
+  font-weight:600;
+  color: rgba(255,255,255,.95);
+}
+
+.valki-system-banner .valki-system-close{
+  flex:0 0 auto;
+  border: 0;
+  background: transparent;
+  color: rgba(255,255,255,.75);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 6px 8px;
+  border-radius: 10px;
+}
+.valki-system-banner .valki-system-close:hover{
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.95);
+}
+
 .valki-msg-row{ display:flex; margin:10px 0; }
 .valki-msg-row.user{ justify-content:flex-end; }
 .valki-msg-row.bot{ justify-content:flex-start; gap:8px; }
@@ -1811,6 +1858,16 @@ html.valki-chat-open header.valki-site-header{
     tr: "Ne yanlış gitti?"
   };
 
+  const noticeCopy = {
+    en: { label:"Notice", historyFail: "We couldn’t sync your chat right now. New messages will still work." },
+    nl: { label:"Let op", historyFail: "We kunnen je chat nu niet synchroniseren. Nieuwe berichten werken wel." },
+    de: { label:"Hinweis", historyFail: "Dein Chat konnte gerade nicht synchronisiert werden. Neue Nachrichten funktionieren trotzdem." },
+    fr: { label:"Remarque", historyFail: "Impossible de synchroniser le chat pour le moment. Tu peux quand même envoyer des messages." },
+    es: { label:"Aviso", historyFail: "No se pudo sincronizar el chat ahora. Aun así puedes enviar mensajes." },
+    it: { label:"Nota", historyFail: "Impossibile sincronizzare la chat ora. Puoi comunque inviare messaggi." },
+    pt: { label:"Aviso", historyFail: "Não foi possível sincronizar o chat agora. Você ainda pode enviar mensagens." }
+  };
+
   const signalCopy = {
     en: ["Crypto Stuck?", "Explained."],
     nl: ["Crypto problemen?", "Uitgelegd."],
@@ -1864,6 +1921,13 @@ html.valki-chat-open header.valki-site-header{
     searchInput.placeholder = txt;
     chatInput.placeholder = txt;
     applySignalLockLocale(loc);
+  }
+
+  function tNotice(key){
+    const loc = pickLocale();
+    const base = (loc||"en").toLowerCase().split("-")[0];
+    const pack = noticeCopy[loc] || noticeCopy[base] || noticeCopy.en;
+    return (pack && pack[key]) ? pack[key] : (noticeCopy.en[key] || "");
   }
   applyLocale();
   preventSignalLockCopy();
@@ -1923,9 +1987,46 @@ html.valki-chat-open header.valki-site-header{
     const rows = messagesInner.querySelectorAll(".valki-msg-row");
     for (const r of rows){
       if (r.querySelector(".valki-typing-bar")) continue;
+      if (r.getAttribute("data-valki-system")) continue;
       return true;
     }
     return false;
+  }
+
+  function hasSystemBanner(id){
+    return !!messagesInner.querySelector('[data-valki-banner="' + id + '"]');
+  }
+  function removeSystemBanner(id){
+    messagesInner.querySelectorAll('[data-valki-banner="' + id + '"]').forEach(n=>n.remove());
+  }
+  function showSystemBannerOnce(id, text){
+    if (hasAnyRealMessages()) return;
+    if (hasSystemBanner(id)) return;
+
+    const banner = document.createElement("div");
+    banner.className = "valki-system-banner";
+    banner.setAttribute("data-valki-banner", id);
+
+    const msg = document.createElement("div");
+    msg.innerHTML = "<strong>" + tNotice("label") + "</strong> — " + String(text || "");
+
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "valki-system-close";
+    close.setAttribute("aria-label", "Dismiss");
+    close.textContent = "×";
+    close.addEventListener("click", ()=> removeSystemBanner(id));
+
+    banner.appendChild(msg);
+    banner.appendChild(close);
+
+    messagesInner.prepend(banner);
+  }
+
+  function hideSystemBannersIfNeeded(){
+    if (hasAnyRealMessages()){
+      removeSystemBanner("history-fail");
+    }
   }
 
   function updateDeleteButtonVisibility(){
@@ -2133,6 +2234,7 @@ html.valki-chat-open header.valki-site-header{
     if (type === "bot") await ensureMarkdownLibs();
     messagesInner.appendChild(createMessageRow({ type, text, images }));
     scrollToBottom(stick);
+    hideSystemBannersIfNeeded();
     updateDeleteButtonVisibility();
     updateHeroState();
   }
@@ -2640,6 +2742,7 @@ html.valki-chat-open header.valki-site-header{
       scrollToBottom(true);
       updateDeleteButtonVisibility();
       updateHeroState();
+      removeSystemBanner("history-fail");
 
       if (forceOpen && !isChatOpen()) openOverlay();
       return true;
@@ -2949,7 +3052,7 @@ html.valki-chat-open header.valki-site-header{
         loaded = false;
       }
       if (!loaded){
-        await addMessage({ type:"bot", text:"Ik kan je accountgeschiedenis nu niet laden… probeer opnieuw of log uit/in" });
+        showSystemBannerOnce("history-fail", tNotice("historyFail"));
       }
       return;
     }
@@ -2998,7 +3101,10 @@ html.valki-chat-open header.valki-site-header{
     setAttachmentUiDisabled(false);
 
     if (isLoggedIn()){
-      await loadLoggedInMessagesToUI({ forceOpen:false });
+      const ok = await loadLoggedInMessagesToUI({ forceOpen:false });
+      if (!ok && !hasAnyRealMessages()){
+        showSystemBannerOnce("history-fail", tNotice("historyFail"));
+      }
     } else {
       guestHistory = loadGuestHistory();
       await renderGuestHistoryToUI();
