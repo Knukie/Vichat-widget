@@ -1859,13 +1859,71 @@ html.valki-chat-open header.valki-site-header{
   };
 
   const noticeCopy = {
-    en: { label:"Notice", historyFail: "We couldn’t sync your chat right now. New messages will still work." },
-    nl: { label:"Let op", historyFail: "We kunnen je chat nu niet synchroniseren. Nieuwe berichten werken wel." },
-    de: { label:"Hinweis", historyFail: "Dein Chat konnte gerade nicht synchronisiert werden. Neue Nachrichten funktionieren trotzdem." },
-    fr: { label:"Remarque", historyFail: "Impossible de synchroniser le chat pour le moment. Tu peux quand même envoyer des messages." },
-    es: { label:"Aviso", historyFail: "No se pudo sincronizar el chat ahora. Aun así puedes enviar mensajes." },
-    it: { label:"Nota", historyFail: "Impossibile sincronizzare la chat ora. Puoi comunque inviare messaggi." },
-    pt: { label:"Aviso", historyFail: "Não foi possível sincronizar o chat agora. Você ainda pode enviar mensagens." }
+    en: {
+      label: "Notice",
+      guestReady: "You’re all set. Let’s explore this together and bring clarity.",
+      historyFail: "We couldn’t sync your chat right now. New messages will still work."
+    },
+    nl: {
+      label: "Info",
+      guestReady: "Je bent klaar om te starten. Laten we samen helderheid brengen.",
+      historyFail: "We kunnen je chat nu niet synchroniseren. Nieuwe berichten werken wel."
+    },
+    de: {
+      label: "Hinweis",
+      guestReady: "Du kannst direkt starten. Lass uns gemeinsam Klarheit schaffen.",
+      historyFail: "Dein Chat konnte gerade nicht synchronisiert werden. Neue Nachrichten funktionieren trotzdem."
+    },
+    fr: {
+      label: "Info",
+      guestReady: "Tout est prêt. Explorons cela ensemble pour plus de clarté.",
+      historyFail: "Impossible de synchroniser le chat pour le moment. Tu peux quand même envoyer des messages."
+    },
+    es: {
+      label: "Info",
+      guestReady: "Todo está listo. Exploremos esto juntos para mayor claridad.",
+      historyFail: "No se pudo sincronizar el chat ahora. Aun así puedes enviar mensajes."
+    },
+    it: {
+      label: "Info",
+      guestReady: "Tutto è pronto. Esploriamolo insieme per fare chiarezza.",
+      historyFail: "Impossibile sincronizzare la chat ora. Puoi comunque inviare messaggi."
+    },
+    pt: {
+      label: "Info",
+      guestReady: "Está tudo pronto. Vamos explorar juntos e trazer clareza.",
+      historyFail: "Não foi possível sincronizar o chat agora. Você ainda pode enviar mensagens."
+    },
+    pl: {
+      label: "Informacja",
+      guestReady: "Wszystko gotowe. Odkryjmy to razem i znajdźmy jasność.",
+      historyFail: "Nie udało się teraz zsynchronizować czatu. Nowe wiadomości będą nadal działać."
+    },
+    ja: {
+      label: "お知らせ",
+      guestReady: "準備は整っています。一緒に探って理解を深めましょう。",
+      historyFail: "現在チャットを同期できませんでした。新しいメッセージは引き続き送れます。"
+    },
+    zh: {
+      label: "提示",
+      guestReady: "一切就绪。让我们一起探索，理清思路。",
+      historyFail: "目前无法同步你的聊天记录，但新消息仍然可以发送。"
+    },
+    ko: {
+      label: "안내",
+      guestReady: "준비되었습니다. 함께 탐색하며 명확하게 해봅시다.",
+      historyFail: "지금 채팅을 동기화할 수 없습니다. 새 메시지는 계속 작동합니다."
+    },
+    ar: {
+      label: "معلومة",
+      guestReady: "كل شيء جاهز. دعنا نستكشف الأمر معًا ونصل إلى الوضوح.",
+      historyFail: "تعذّر الآن مزامنة محادثتك. ستستمر الرسائل الجديدة بالعمل."
+    },
+    tr: {
+      label: "Bilgi",
+      guestReady: "Her şey hazır. Birlikte keşfedelim ve netlik kazanalım.",
+      historyFail: "Sohbetini şu anda eşitleyemedik. Yeni mesajlar yine de çalışacak."
+    }
   };
 
   const signalCopy = {
@@ -2023,9 +2081,15 @@ html.valki-chat-open header.valki-site-header{
     messagesInner.prepend(banner);
   }
 
+  function ensureReadyNotice(){
+    if (hasAnyRealMessages()) return;
+    showSystemBannerOnce("notice-ready", tNotice("guestReady"));
+  }
+
   function hideSystemBannersIfNeeded(){
     if (hasAnyRealMessages()){
       removeSystemBanner("history-fail");
+      removeSystemBanner("notice-ready");
     }
   }
 
@@ -2743,6 +2807,7 @@ html.valki-chat-open header.valki-site-header{
       updateDeleteButtonVisibility();
       updateHeroState();
       removeSystemBanner("history-fail");
+      ensureReadyNotice();
 
       if (forceOpen && !isChatOpen()) openOverlay();
       return true;
@@ -2765,12 +2830,13 @@ html.valki-chat-open header.valki-site-header{
         }
       }catch{}
       clearMessagesUI();
+      ensureReadyNotice();
       return;
     }
 
     guestHistory = [];
     saveGuestHistory(guestHistory);
-    clearMessagesUI();
+    await renderGuestHistoryToUI();
   }
 
   async function logout(){
@@ -2812,6 +2878,7 @@ html.valki-chat-open header.valki-site-header{
     scrollToBottom(true);
     updateDeleteButtonVisibility();
     updateHeroState();
+    ensureReadyNotice();
   }
 
   /* ===============================
@@ -3052,6 +3119,7 @@ html.valki-chat-open header.valki-site-header{
         loaded = false;
       }
       if (!loaded){
+        removeSystemBanner("notice-ready");
         showSystemBannerOnce("history-fail", tNotice("historyFail"));
       }
       return;
@@ -3103,6 +3171,7 @@ html.valki-chat-open header.valki-site-header{
     if (isLoggedIn()){
       const ok = await loadLoggedInMessagesToUI({ forceOpen:false });
       if (!ok && !hasAnyRealMessages()){
+        removeSystemBanner("notice-ready");
         showSystemBannerOnce("history-fail", tNotice("historyFail"));
       }
     } else {
