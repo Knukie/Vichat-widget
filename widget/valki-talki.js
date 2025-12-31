@@ -1505,6 +1505,8 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   const MAX_FILES = 4;
   const MAX_BYTES = 5 * 1024 * 1024; // 5MB per file (client-side gate)
   const isiOS = /iP(ad|hone|od)/.test(navigator.userAgent);
+  const DEBUG = !!window.__VALKI_DEBUG__;
+  const overlayCleanupTimers = new WeakMap();
 
   /* ===============================
      DOM
@@ -1811,9 +1813,6 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   function cleanText(v){ return String(v ?? "").replace(/\\u0000/g,"").trim(); }
   function safeJsonParse(s, fallback){ try{ return JSON.parse(s); } catch { return fallback; } }
   function parsePx(v){ const n = parseFloat(String(v||"").replace("px","")); return Number.isFinite(n) ? n : 0; }
-
-  const DEBUG = !!window.__VALKI_DEBUG__;
-  const overlayCleanupTimers = new WeakMap();
 
   function nowIso(){ return new Date().toISOString(); }
   function describeEl(el){
