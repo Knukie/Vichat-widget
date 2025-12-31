@@ -1216,6 +1216,16 @@ html.valki-chat-open header.valki-site-header{
   .valki-chat-send{ width:38px; height:38px; }
   .valki-chat-attach{ width:38px; height:38px; }
 }
+
+:root{ --vvh: 100dvh; --vvTop: 0px; }
+html.valki-chat-open .valki-overlay .valki-modal{
+  position: fixed;
+  top: var(--vvTop);
+  left: 0; right: 0;
+  height: var(--vvh);
+  max-height: var(--vvh);
+}
+html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
 }`;
     (document.head || document.getElementsByTagName('head')[0] || document.documentElement).appendChild(styleTag);
 
@@ -1738,6 +1748,20 @@ html.valki-chat-open header.valki-site-header{
   function cleanText(v){ return String(v ?? "").replace(/\\u0000/g,"").trim(); }
   function safeJsonParse(s, fallback){ try{ return JSON.parse(s); } catch { return fallback; } }
   function parsePx(v){ const n = parseFloat(String(v||"").replace("px","")); return Number.isFinite(n) ? n : 0; }
+
+  function updateVisualViewportVars(){
+    const vv = window.visualViewport;
+    if (!vv) return;
+    document.documentElement.style.setProperty("--vvh", vv.height + "px");
+    document.documentElement.style.setProperty("--vvTop", (vv.offsetTop || 0) + "px");
+  }
+
+  updateVisualViewportVars();
+  if (window.visualViewport){
+    window.visualViewport.addEventListener("resize", updateVisualViewportVars, { passive:true });
+    window.visualViewport.addEventListener("scroll", updateVisualViewportVars, { passive:true });
+  }
+  window.addEventListener("orientationchange", ()=> setTimeout(updateVisualViewportVars, 50), { passive:true });
 
   const DEBUG = !!window.__VALKI_DEBUG__;
   const overlayCleanupTimers = new WeakMap();
@@ -2376,6 +2400,7 @@ html.valki-chat-open header.valki-site-header{
   }
 
   function openOverlay(){
+    updateVisualViewportVars();
     logDebug("openOverlay:start", overlay);
     if (document.activeElement === searchInput){
       searchInput.blur();
@@ -3065,6 +3090,17 @@ html.valki-chat-open header.valki-site-header{
   // Attachments
   attachBtn.addEventListener("click", ()=>{
     if (chatInput.disabled || isSending) return;
+
+    const isiOS = /iP(ad|hone|od)/.test(navigator.userAgent);
+
+    if (isiOS){
+      try{ chatInput.blur(); }catch{}
+      requestAnimationFrame(()=>{
+        setTimeout(()=> fileInput.click(), 80);
+      });
+      return;
+    }
+
     fileInput.click();
   });
 
