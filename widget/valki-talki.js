@@ -56,6 +56,10 @@
   --valki-vh: 1vh;
   --valki-vh: 1dvh;
   --valki-chat-pad-bottom: calc(env(safe-area-inset-bottom) + 8px);
+  --vvh: 100dvh;
+  --vvTop: 0px;
+  --vvOffset: 0px;
+  --composer-h: 88px;
 }
 
 #valki-bg{
@@ -1209,13 +1213,16 @@ html.valki-chat-open header.valki-site-header{
   .valki-chat-attach{ width:38px; height:38px; }
 }
 
-:root{ --vvh: 100dvh; --vvTop: 0px; }
 html.valki-chat-open .valki-overlay .valki-modal{
   position: fixed;
   top: var(--vvTop);
   left: 0; right: 0;
   height: var(--vvh);
   max-height: var(--vvh);
+  min-height: 0;
+}
+html.valki-chat-open .valki-messages-inner{
+  padding-bottom: calc(var(--composer-h) + env(safe-area-inset-bottom) + 12px);
 }
 html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
 }`;
@@ -1485,6 +1492,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   /* Attachments */
   const MAX_FILES = 4;
   const MAX_BYTES = 5 * 1024 * 1024; // 5MB per file (client-side gate)
+  const isiOS = /iP(ad|hone|od)/.test(navigator.userAgent);
 
   /* ===============================
      DOM
@@ -1557,6 +1565,51 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   document.documentElement.classList.add("valki-landing-ready");
   document.body.classList.add("valki-landing-ready");
   bindViewportUnitListeners();
+
+  let viewportSyncBound = false;
+
+  function syncViewportLayout(reason){
+    const vv = window.visualViewport;
+    const docEl = document.documentElement;
+    const layoutH = getViewportHeight();
+    const vvh = vv ? vv.height : layoutH;
+    const vvTop = vv ? (vv.offsetTop || 0) : 0;
+    const vvOffset = Math.max(0, (window.innerHeight || layoutH) - vvh - vvTop);
+    const stickToBottom = messagesEl ? isNearBottom(messagesEl) : false;
+
+    docEl.style.setProperty("--vvh", (vvh || layoutH || 0) + "px");
+    docEl.style.setProperty("--vvTop", vvTop + "px");
+    docEl.style.setProperty("--vvOffset", vvOffset + "px");
+
+    const composerRect = chatForm ? chatForm.getBoundingClientRect() : null;
+    const composerH = composerRect ? composerRect.height : 0;
+    docEl.style.setProperty("--composer-h", composerH + "px");
+
+    if (isChatOpen() && stickToBottom && messagesEl){
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    logDebug("syncViewportLayout", overlay, { reason, vvh, vvTop, composerH, nearBottom: stickToBottom });
+  }
+
+  function bindViewportSyncListeners(){
+    if (viewportSyncBound) return;
+    const vv = window.visualViewport;
+    if (vv){
+      vv.addEventListener("resize", ()=> syncViewportLayout("vv-resize"), { passive:true });
+      vv.addEventListener("scroll", ()=> syncViewportLayout("vv-scroll"), { passive:true });
+    }
+    window.addEventListener("resize", ()=> syncViewportLayout("win-resize"), { passive:true });
+    window.addEventListener("orientationchange", ()=> setTimeout(()=> syncViewportLayout("orientation"), 50), { passive:true });
+    if (chatInput){
+      chatInput.addEventListener("focus", ()=> syncViewportLayout("focus"));
+      chatInput.addEventListener("blur", ()=> syncViewportLayout("blur"));
+    }
+    viewportSyncBound = true;
+  }
+
+  bindViewportSyncListeners();
+  syncViewportLayout("init");
 
   /* ===============================
      Valki animated background
@@ -1743,20 +1796,6 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   function cleanText(v){ return String(v ?? "").replace(/\\u0000/g,"").trim(); }
   function safeJsonParse(s, fallback){ try{ return JSON.parse(s); } catch { return fallback; } }
   function parsePx(v){ const n = parseFloat(String(v||"").replace("px","")); return Number.isFinite(n) ? n : 0; }
-
-  function updateVisualViewportVars(){
-    const vv = window.visualViewport;
-    if (!vv) return;
-    document.documentElement.style.setProperty("--vvh", vv.height + "px");
-    document.documentElement.style.setProperty("--vvTop", (vv.offsetTop || 0) + "px");
-  }
-
-  updateVisualViewportVars();
-  if (window.visualViewport){
-    window.visualViewport.addEventListener("resize", updateVisualViewportVars, { passive:true });
-    window.visualViewport.addEventListener("scroll", updateVisualViewportVars, { passive:true });
-  }
-  window.addEventListener("orientationchange", ()=> setTimeout(updateVisualViewportVars, 50), { passive:true });
 
   const DEBUG = !!window.__VALKI_DEBUG__;
   const overlayCleanupTimers = new WeakMap();
@@ -2549,7 +2588,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   }
 
   function openOverlay(){
-    updateVisualViewportVars();
+    syncViewportLayout("open");
     logDebug("openOverlay:start", overlay);
     if (document.activeElement === searchInput){
       searchInput.blur();
@@ -2571,8 +2610,10 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   function closeOverlay(reason){
     const why = (typeof reason === "string") ? reason : "closeOverlay";
     logDebug("closeOverlay:start", overlay);
+    syncViewportLayout("close:start");
     setVisible(overlay, false, why);
     unlockBodyScroll();
+    syncViewportLayout("close:end");
     removePrivacyNotice();
   }
 
@@ -2678,6 +2719,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     chatInput.style.height = next + "px";
 
     chatInput.style.overflowY = (scrollH > maxH) ? "auto" : "hidden";
+    syncViewportLayout("composer");
   }
 
   /* ===============================
@@ -2698,6 +2740,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     if (!attachments.length){
       attachTray.style.display = "none";
       attachTray.innerHTML = "";
+      syncViewportLayout("attachments");
       return;
     }
     attachTray.style.display = "flex";
@@ -2724,6 +2767,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       wrap.appendChild(rm);
       attachTray.appendChild(wrap);
     }
+    syncViewportLayout("attachments");
   }
 
   function readFileAsDataURL(file){
@@ -3241,14 +3285,18 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   // Attachments
   attachBtn.addEventListener("click", ()=>{
     if (chatInput.disabled || isSending) return;
-
-    const isiOS = /iP(ad|hone|od)/.test(navigator.userAgent);
-
+    const stickToBottom = isNearBottom(messagesEl);
     if (isiOS){
       try{ chatInput.blur(); }catch{}
       requestAnimationFrame(()=>{
-        setTimeout(()=> fileInput.click(), 80);
+        syncViewportLayout("attach-raf");
+        setTimeout(()=>{
+          syncViewportLayout("attach-timeout");
+          if (stickToBottom) scrollToBottom(true);
+          fileInput.click();
+        }, 80);
       });
+      syncViewportLayout("attach-blur");
       return;
     }
 
@@ -3256,9 +3304,14 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   });
 
   fileInput.addEventListener("change", async ()=>{
+    const stickToBottom = isNearBottom(messagesEl);
     await addFiles(fileInput.files);
     fileInput.value = "";
     clampComposer();
+    if (isiOS){
+      try{ chatInput.focus({ preventScroll:true }); }catch{ chatInput.focus(); }
+    }
+    if (stickToBottom) scrollToBottom(true);
   });
 
   closeBtn.addEventListener("click", closeOverlay);
