@@ -2812,18 +2812,16 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   function normalizeImagePayload(img){
     if (!img || typeof img !== "object") return null;
 
-    const payloadImg = {};
+    const name = String(img.name || "image");
+    const type = String(img.type || "image/jpeg");
 
-    if (img.name) payloadImg.name = String(img.name);
-    if (img.type) payloadImg.type = String(img.type);
+    const payloadImg = { name, type };
 
     const dataUrl = (typeof img.dataUrl === "string") ? img.dataUrl : "";
     const url = (typeof img.url === "string") ? img.url : (typeof img.src === "string" ? img.src : "");
 
     if (dataUrl) payloadImg.dataUrl = dataUrl;
     if (url) payloadImg.url = url;
-
-    if (Number.isFinite(Number(img.size))) payloadImg.size = Number(img.size);
 
     // Only keep images that have a usable string payload
     if (!payloadImg.dataUrl && !payloadImg.url) return null;
@@ -2847,7 +2845,11 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     try{
       return JSON.stringify(basePayload);
     }catch(err){
-      console.warn("valki payload JSON serialization failed; stripping images", err, { payload: basePayload });
+      console.warn("valki payload JSON serialization failed; stripping images", err, {
+        message: basePayload.message,
+        clientId: basePayload.clientId,
+        imagesLength: Array.isArray(basePayload.images) ? basePayload.images.length : 0
+      });
     }
 
     const fallbackPayload = {
@@ -2859,7 +2861,11 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     try{
       return JSON.stringify(fallbackPayload);
     }catch(err){
-      console.error("valki payload fallback serialization failed; sending minimal payload", err, { payload: fallbackPayload });
+      console.error("valki payload fallback serialization failed; sending minimal payload", err, {
+        message: fallbackPayload.message,
+        clientId: fallbackPayload.clientId,
+        imagesLength: Array.isArray(fallbackPayload.images) ? fallbackPayload.images.length : 0
+      });
       return JSON.stringify({ message:"", clientId:"", images: [] });
     }
   }
