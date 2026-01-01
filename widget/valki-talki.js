@@ -507,7 +507,9 @@ html.valki-chat-open .valki-login-btn{
 .valki-confirm-overlay,
 .valki-logout-overlay{
   position:fixed;
-  top:0; right:0; bottom:0; left:0;
+  inset:0;
+  height:100vh;
+  height:100dvh;
   background:rgba(0,0,0,.88);
   display:none;
   pointer-events:none;
@@ -537,18 +539,19 @@ html.valki-chat-open .valki-overlay,
 html.valki-chat-open .valki-auth-overlay,
 html.valki-chat-open .valki-confirm-overlay,
 html.valki-chat-open .valki-logout-overlay{
-  top: var(--vvTop);
-  height: var(--vvh);
-  max-height: var(--vvh);
-  bottom: auto;
+  inset:0;
+  height:100vh;
+  height:100dvh;
+  max-height:100dvh;
 }
 
 /* FULLSCREEN chat modal */
 .valki-modal{
   width:100vw;
   max-width:none;
-  height: var(--vvh);
-  max-height: var(--vvh);
+  height:100vh;
+  height:100dvh;
+  max-height:100dvh;
   min-height:0;
 
   background:radial-gradient(circle at top, #101010 0, #050505 60%);
@@ -567,7 +570,7 @@ html.valki-chat-open .valki-logout-overlay{
   flex-direction:column;
   align-items:stretch;
   justify-content:flex-start;
-  padding:0 16px calc(var(--valki-kb) + env(safe-area-inset-bottom));
+  padding:0 16px env(safe-area-inset-bottom);
 }
 .valki-overlay.is-visible .valki-modal{
   opacity:1;
@@ -694,7 +697,7 @@ html.valki-chat-open header.valki-site-header{
 
 .valki-notice{
   position: sticky !important;
-  bottom: calc(12px + env(safe-area-inset-bottom) + var(--valki-kb));
+  bottom: calc(12px + env(safe-area-inset-bottom));
   margin: 0 auto 10px;
   max-width: 560px;
   width: calc(100% - 32px);
@@ -800,7 +803,7 @@ html.valki-chat-open header.valki-site-header{
   border-top:1px solid rgba(255,255,255,.08);
   background:linear-gradient(to top,#050505,#080808);
   --valki-cookie-reserve: 0px !important;
-  padding:12px 0 calc(var(--valki-chat-pad-bottom) + var(--valki-kb)) !important;
+  padding:12px 0 var(--valki-chat-pad-bottom) !important;
   width:100%;
   margin-top:auto;
 }
@@ -1223,14 +1226,14 @@ html.valki-chat-open header.valki-site-header{
 
 html.valki-chat-open .valki-overlay .valki-modal{
   position: fixed;
-  top: var(--vvTop);
-  left: 0; right: 0;
-  height: var(--vvh);
-  max-height: var(--vvh);
+  inset: 0;
+  height:100vh;
+  height:100dvh;
+  max-height:100dvh;
   min-height: 0;
 }
 html.valki-chat-open .valki-messages-inner{
-  padding-bottom: calc(var(--valki-chat-gap, var(--composer-h)) + env(safe-area-inset-bottom) + 12px);
+  padding-bottom: calc(var(--composer-h) + env(safe-area-inset-bottom) + 12px);
 }
 html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
 }`;
@@ -1791,7 +1794,6 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   }
 
   function createViewportManager(){
-    const docEl = document.documentElement;
     const state = {
       chatOpen: false,
       bound: false,
@@ -1810,129 +1812,34 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       }
     };
 
-    const clamp = (v, min, max)=> Math.min(Math.max(isFinite(v) ? v : min, min), max);
-
-    function compute(reason){
-      const vv = (window.visualViewport && isFinite(window.visualViewport.height)) ? window.visualViewport : null;
-      const innerH = Math.max(0, window.innerHeight || 0);
-      const layoutH = Math.max(innerH, getViewportHeight(), (docEl && docEl.clientHeight) || 0, 320);
-      const vvHeightRaw = vv ? vv.height : layoutH;
-      const viewportHeight = clamp(vvHeightRaw, layoutH * 0.35, layoutH * 1.15);
-      const vvTop = clamp(vv ? vv.offsetTop || 0 : 0, 0, layoutH);
-      const keyboardHeight = vv
-        ? clamp((innerH || layoutH) - viewportHeight - vvTop, 0, layoutH * 0.8)
-        : 0;
-      const composerRect = chatForm ? chatForm.getBoundingClientRect() : null;
-      const composerHeight = composerRect ? composerRect.height : 0;
-      const chatGap = Math.max(0, composerHeight + keyboardHeight);
-
-      return {
-        viewportHeight,
-        visualViewportHeight: vv ? viewportHeight : null,
-        visualViewportTop: vvTop,
-        keyboardHeight,
-        composerHeight,
-        chatGap,
-        innerHeight: innerH,
-        reason,
-        ts: nowIso(),
-        nearBottom: !!(messagesEl && isNearBottom(messagesEl, 120))
-      };
-    }
-
-    function applyMetrics(metrics, stickToBottom){
-      if (!metrics || !docEl) return;
-      const unit = metrics.viewportHeight ? (metrics.viewportHeight * 0.01) : 0;
-      if (unit) docEl.style.setProperty("--valki-vh", unit.toFixed(4) + "px");
-      docEl.style.setProperty("--vvh", metrics.viewportHeight + "px");
-      docEl.style.setProperty("--vvTop", metrics.visualViewportTop + "px");
-      docEl.style.setProperty("--valki-kb", metrics.keyboardHeight + "px");
-      docEl.style.setProperty("--composer-h", metrics.composerHeight + "px");
-      docEl.style.setProperty("--valki-chat-gap", metrics.chatGap + "px");
-
-      state.lastMetrics = metrics;
-
-      if (stickToBottom && isChatOpen() && messagesEl){
-        requestAnimationFrame(()=>{ messagesEl.scrollTop = messagesEl.scrollHeight; });
-      }
-
-      logDebug("viewport:apply", overlay, {
-        reason: metrics.reason,
-        viewportHeight: metrics.viewportHeight,
-        vvTop: metrics.visualViewportTop,
-        keyboard: metrics.keyboardHeight,
-        composer: metrics.composerHeight,
-        chatGap: metrics.chatGap,
-        nearBottom: stickToBottom
-      });
-    }
-
     function run(reason, opts={}){
-      const forceStick = !!opts.forceStick;
-      const stick = forceStick || (messagesEl && isNearBottom(messagesEl, 110));
-      const metrics = compute(reason);
-      applyMetrics(metrics, stick);
-      return metrics;
+      state.lastMetrics = Object.assign(state.lastMetrics, {
+        reason: reason || state.lastMetrics.reason,
+        ts: nowIso()
+      });
+      return state.lastMetrics;
     }
 
     function schedule(reason, { delay=45, lateDelay=120, forceStick=false } = {}){
-      const stick = forceStick || (messagesEl && isNearBottom(messagesEl, 110));
-      if (state.timers.main) clearTimeout(state.timers.main);
-      if (state.timers.late) clearTimeout(state.timers.late);
-
-      const kickoff = ()=> requestAnimationFrame(()=> run(reason, { forceStick: stick }));
-      state.timers.main = setTimeout(kickoff, Math.max(0, delay));
-
-      if (Number.isFinite(lateDelay) && lateDelay > 0){
-        state.timers.late = setTimeout(()=> run(reason + ":late", { forceStick: stick }), Math.max(0, delay + lateDelay));
-      }
+      return { reason, delay, lateDelay, forceStick };
     }
 
     function onComposerChange(reason){
-      return run(reason || "composer-change", { forceStick:true });
+      state.lastMetrics = Object.assign(state.lastMetrics, { reason: reason || "composer-change", ts: nowIso() });
+      return state.lastMetrics;
     }
 
     function onChatOpen(){
       state.chatOpen = true;
-      schedule("chat-open", { delay:16, lateDelay:180, forceStick:true });
     }
 
     function onChatClose(){
       state.chatOpen = false;
-      const baseHeight = Math.max(
-        getViewportHeight(),
-        window.innerHeight || 0,
-        state.lastMetrics.viewportHeight || 0,
-        320
-      );
-      const composerHeight = state.lastMetrics.composerHeight || 0;
-      const metrics = {
-        viewportHeight: baseHeight,
-        visualViewportHeight: baseHeight,
-        visualViewportTop: 0,
-        keyboardHeight: 0,
-        composerHeight,
-        chatGap: Math.max(0, composerHeight),
-        innerHeight: window.innerHeight || baseHeight,
-        reason: "chat-close",
-        ts: nowIso(),
-        nearBottom: false
-      };
-      applyMetrics(metrics, false);
     }
 
     function bind(){
       if (state.bound) return;
       state.bound = true;
-      const vv = window.visualViewport;
-      if (vv){
-        vv.addEventListener("resize", ()=> schedule("vv-resize", { delay:20, lateDelay:140, forceStick:true }), { passive:true });
-        vv.addEventListener("scroll", ()=> schedule("vv-scroll", { delay:10, lateDelay:140, forceStick:true }), { passive:true });
-      }
-      window.addEventListener("resize", ()=> schedule("win-resize", { delay:30, lateDelay:150 }), { passive:true });
-      window.addEventListener("orientationchange", ()=> schedule("orientation", { delay:80, lateDelay:200, forceStick:true }), { passive:true });
-      window.addEventListener("focus", (e)=>{ if (chatForm && chatForm.contains(e.target)) schedule("focus", { delay:35, lateDelay:160, forceStick:true }); }, true);
-      window.addEventListener("blur", (e)=>{ if (chatForm && chatForm.contains(e.target)) schedule("blur", { delay:35, lateDelay:140 }); }, true);
     }
 
     function diag(){
@@ -1957,12 +1864,12 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
 
   function syncViewportLayout(reason, opts){
     if (!viewportManager) return;
-    viewportManager.run(reason, opts);
+    return viewportManager.run(reason, opts);
   }
 
   function scheduleViewportSync(reason, delay=45, lateDelay=120, forceStick=false){
     if (!viewportManager) return;
-    viewportManager.schedule(reason, { delay, lateDelay, forceStick });
+    return viewportManager.schedule(reason, { delay, lateDelay, forceStick });
   }
 
   function isNearBottom(el, px=90){
@@ -1973,13 +1880,11 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   }
   function blurChatInputSafe(reason){
     try{ chatInput.blur(); }catch{}
-    scheduleViewportSync(reason || "blur-chat-input-safe", 45, 140);
   }
   function focusChatInputSafe(reason, opts={}){
     const stickToBottom = !!(opts && opts.stickToBottom);
     requestAnimationFrame(()=>{
       try{ chatInput.focus({ preventScroll:true }); }catch{ chatInput.focus(); }
-      scheduleViewportSync(reason || "focus-chat-input-safe", 45, 140, true);
       if (stickToBottom){
         requestAnimationFrame(()=> scrollToBottom(true));
       }
@@ -2733,7 +2638,6 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     document.body.style.overflow = "hidden";
     document.body.style.touchAction = "none";
     document.documentElement.classList.add("valki-chat-open");
-    scheduleViewportSync("lock-body", 10, 180);
     logDebug("lockBodyScroll", overlay, { htmlClassList: Array.from(document.documentElement.classList || []), scrollY:y });
   }
   function unlockBodyScroll(){
@@ -2749,14 +2653,11 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     delete document.body.dataset.valkiScrollLocked;
     delete document.body.dataset.valkiScrollY;
     document.documentElement.classList.remove("valki-chat-open");
-    scheduleViewportSync("unlock-body", 10, 180);
     logDebug("unlockBodyScroll", overlay, { htmlClassList: Array.from(document.documentElement.classList || []), scrollY:y });
     if (hadLock) window.scrollTo({ top:y, behavior:"auto" });
   }
 
   function openOverlay(){
-    viewportManager.onChatOpen();
-    syncViewportLayout("open");
     logDebug("openOverlay:start", overlay);
     if (document.activeElement === searchInput){
       searchInput.blur();
@@ -2771,7 +2672,6 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
         scrollToBottom(true);
         clampComposer();
         showPrivacyNoticeIfNeeded();
-        scheduleViewportSync("open:focused", 50, 200, true);
       });
     });
   }
@@ -2780,11 +2680,8 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     const why = (typeof reason === "string") ? reason : "closeOverlay";
     blurChatInputSafe("closeOverlay");
     logDebug("closeOverlay:start", overlay);
-    syncViewportLayout("close:start");
     setVisible(overlay, false, why);
     unlockBodyScroll();
-    viewportManager.onChatClose();
-    syncViewportLayout("close:end");
     removePrivacyNotice();
   }
 
@@ -2794,7 +2691,6 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     if (confirmOverlay && confirmOverlay.classList.contains("is-visible")) closeConfirm(why);
     if (authOverlay && authOverlay.classList.contains("is-visible")) closeAuthOverlay({ force:true, reason:why });
     if (isChatOpen()) closeOverlay(why);
-    if (viewportManager) viewportManager.onChatClose();
     unlockBodyScroll();
   }
 
@@ -2891,7 +2787,6 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     chatInput.style.height = next + "px";
 
     chatInput.style.overflowY = (scrollH > maxH) ? "auto" : "hidden";
-    if (viewportManager) viewportManager.onComposerChange("composer");
   }
 
   /* ===============================
@@ -2987,7 +2882,6 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     if (!attachments.length){
       attachTray.style.display = "none";
       attachTray.innerHTML = "";
-      syncViewportLayout("attachments");
       return;
     }
     attachTray.style.display = "flex";
@@ -3015,7 +2909,6 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       wrap.appendChild(rm);
       attachTray.appendChild(wrap);
     }
-    syncViewportLayout("attachments");
   }
 
   async function uploadFile(file){
@@ -3096,7 +2989,6 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       }
     }
     showAttachTray();
-    syncViewportLayout("attachments-uploaded");
     if (errors.size){
       for (const err of errors){
         await showAttachmentError(err);
@@ -3590,9 +3482,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       blurChatInputSafe("attach-blur");
       requestAnimationFrame(()=>{
         requestAnimationFrame(()=>{
-          syncViewportLayout("attach-pre-picker");
           setTimeout(()=>{
-            syncViewportLayout("attach-pre-click");
             fileInput.click();
           }, 70);
         });
@@ -3675,24 +3565,20 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   }
 
   function handleViewportResize(){
-    scheduleViewportSync("handle-resize", 10, 180);
     if (document.activeElement === chatInput) clampComposer();
     scrollToBottom(false);
   }
 
   window.addEventListener("resize", ()=>{
     if (isEditingInput()) return;
-    scheduleViewportSync("win-resize-handler", 20, 160);
   }, { passive:true });
 
   window.addEventListener("orientationchange", ()=>{
-    scheduleViewportSync("orientationchange-handler", 80, 240);
   }, { passive:true });
 
   if (document.fonts && document.fonts.ready){
     document.fonts.ready.then(()=>{
       if (document.activeElement === chatInput) clampComposer();
-      scheduleViewportSync("fonts-ready", 20, 120);
     }).catch(()=>{});
   }
 
