@@ -54,9 +54,8 @@
   --valki-font: system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
   --valki-content-max: 860px;
   --valki-vh: 1vh;
-  --valki-vh: 1dvh;
   --valki-chat-pad-bottom: calc(env(safe-area-inset-bottom) + 8px);
-  --vvh: 100dvh;
+  --vvh: calc(var(--valki-vh, 1vh) * 100);
   --vvTop: 0px;
   --vvOffset: 0px;
   --valki-kb: 0px;
@@ -68,7 +67,7 @@
   position:fixed;
   inset:0;
   width:100vw;
-  height:calc(var(--valki-vh, 1vh) * 100);
+  height:var(--vvh);
   z-index:0;
   pointer-events:none;
   background:var(--bg);
@@ -96,12 +95,12 @@ html,body{
   color:var(--text-main);
   margin:0;
   padding:0;
-  min-height:calc(var(--valki-vh, 1vh) * 100);
+  min-height:var(--vvh);
 }
 
 html.valki-landing-ready:not(.valki-chat-open),
 body.valki-landing-ready:not(.valki-chat-open){
-  height:calc(var(--valki-vh, 1vh) * 100);
+  height:var(--vvh);
   overflow:hidden !important;
   overscroll-behavior:none;
 }
@@ -115,8 +114,7 @@ body.valki-landing-ready:not(.valki-chat-open){
 
   /* Zorg dat de landing netjes de viewport vult */
   .valki-landing-shell{
-    min-height:calc(var(--valki-vh, 1vh) * 100);
-    min-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    min-height:calc(var(--vvh) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     justify-content:center;
   }
 }
@@ -162,8 +160,7 @@ body.valki-landing-ready:not(.valki-chat-open){
   max-width:none;
   margin:0;
   padding:0;
-  min-height:calc(var(--valki-vh, 1vh) * 100);
-  min-height:100dvh;
+  min-height:var(--vvh);
   box-sizing:border-box;
   position:relative;
   z-index:1;
@@ -181,8 +178,7 @@ body.valki-landing-ready:not(.valki-chat-open){
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  min-height:calc(var(--valki-vh, 1vh) * 100);
-  min-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  min-height:calc(var(--vvh) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   padding:calc(18px + env(safe-area-inset-top)) 0 calc(26px + env(safe-area-inset-bottom));
   box-sizing:border-box;
   gap:18px;
@@ -1508,6 +1504,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   const isiOS = /iP(ad|hone|od)/.test(navigator.userAgent);
   const DEBUG = !!window.__VALKI_DEBUG__;
   const overlayCleanupTimers = new WeakMap();
+  let viewportManager = null;
 
   /* ===============================
      DOM
@@ -1579,80 +1576,10 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
 
   document.documentElement.classList.add("valki-landing-ready");
   document.body.classList.add("valki-landing-ready");
-  bindViewportUnitListeners();
-
-  let viewportSyncBound = false;
-
-  function syncViewportLayout(reason){
-    const vv = (window.visualViewport && isFinite(window.visualViewport.height)) ? window.visualViewport : null;
-    const docEl = document.documentElement;
-    const layoutH = getViewportHeight();
-    const clientH = (docEl && docEl.clientHeight) || 0;
-    const innerH = Math.max(layoutH || 0, window.innerHeight || 0, clientH, 0);
-    const clamp = (v, min, max)=> Math.min(Math.max(isFinite(v) ? v : min, min), max);
-
-    const vvHeightRaw = vv && isFinite(vv.height) ? vv.height : 0;
-    let vvh = vvHeightRaw > 0 ? vvHeightRaw : innerH || layoutH;
-    if (!vvh || !isFinite(vvh)) vvh = innerH || layoutH || clientH || 0;
-
-    let vvTop = vv && isFinite(vv.offsetTop) ? vv.offsetTop : 0;
-    vvTop = clamp(vvTop || 0, 0, Math.max(innerH, 0));
-
-    const baseHeight = Math.max(innerH || 0, layoutH || 0, 320);
-    const maxHeight = Math.max(baseHeight + 160, baseHeight * 1.12);
-    const minHeight = Math.max(180, Math.min(baseHeight, baseHeight * 0.7));
-    const resolvedHeight = clamp(vvh || baseHeight, minHeight, maxHeight);
-
-    let vvOffset = (window.innerHeight || baseHeight) - resolvedHeight - vvTop;
-    if (!isFinite(vvOffset)) vvOffset = 0;
-    vvOffset = clamp(vvOffset, 0, Math.max(baseHeight * 0.8, 320));
-
-    const valkiKb = Math.max(0, vvOffset);
-    const stickToBottom = messagesEl ? isNearBottom(messagesEl) : false;
-
-    docEl.style.setProperty("--vvh", resolvedHeight + "px");
-    docEl.style.setProperty("--vvTop", vvTop + "px");
-    docEl.style.setProperty("--vvOffset", vvOffset + "px");
-    docEl.style.setProperty("--valki-kb", valkiKb + "px");
-
-    const composerRect = chatForm ? chatForm.getBoundingClientRect() : null;
-    const composerH = composerRect ? composerRect.height : 0;
-    docEl.style.setProperty("--composer-h", composerH + "px");
-    const chatGap = Math.max(0, composerH + valkiKb);
-    docEl.style.setProperty("--valki-chat-gap", chatGap + "px");
-
-    if (isChatOpen() && stickToBottom && messagesEl){
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-
-    logDebug("syncViewportLayout", overlay, { reason, vvh: resolvedHeight, vvTop, composerH, vvOffset, valkiKb, chatGap, nearBottom: stickToBottom });
-  }
-
-  function scheduleViewportSync(reason, delay=45, lateDelay=120){
-    requestAnimationFrame(()=> setTimeout(()=> syncViewportLayout(reason), delay));
-    if (Number.isFinite(lateDelay) && lateDelay >= 0){
-      setTimeout(()=> syncViewportLayout(reason + ":late"), delay + lateDelay);
-    }
-  }
-
-  function bindViewportSyncListeners(){
-    if (viewportSyncBound) return;
-    const vv = window.visualViewport;
-    if (vv){
-      vv.addEventListener("resize", ()=> scheduleViewportSync("vv-resize"), { passive:true });
-      vv.addEventListener("scroll", ()=> scheduleViewportSync("vv-scroll"), { passive:true });
-    }
-    window.addEventListener("resize", ()=> scheduleViewportSync("win-resize"), { passive:true });
-    window.addEventListener("orientationchange", ()=> scheduleViewportSync("orientation", 80, 140), { passive:true });
-    if (chatInput){
-      chatInput.addEventListener("focus", ()=> scheduleViewportSync("focus", 50, 140));
-      chatInput.addEventListener("blur", ()=> scheduleViewportSync("blur", 50, 140));
-    }
-    viewportSyncBound = true;
-  }
-
-  bindViewportSyncListeners();
-  syncViewportLayout("init");
+  viewportManager = createViewportManager();
+  viewportManager.bind();
+  viewportManager.run("init");
+  window.__VALKI_DIAG__ = ()=> viewportManager.diag();
 
   /* ===============================
      Valki animated background
@@ -1692,7 +1619,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       bgCanvas.width = w;
       bgCanvas.height = h;
       bgCanvas.style.width = "100vw";
-      bgCanvas.style.height = "calc(var(--valki-vh, 1vh) * 100)";
+      bgCanvas.style.height = "var(--vvh)";
 
       emitters = [
         { x: w * 0.28, y: h * 0.42, phase: Math.random() * 10 },
@@ -1863,22 +1790,179 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     console.log("[VALKI][overlay]", payload);
   }
 
+  function createViewportManager(){
+    const docEl = document.documentElement;
+    const state = {
+      chatOpen: false,
+      bound: false,
+      timers: { main:null, late:null },
+      lastMetrics: {
+        viewportHeight: getViewportHeight(),
+        visualViewportHeight: null,
+        visualViewportTop: 0,
+        keyboardHeight: 0,
+        composerHeight: 0,
+        chatGap: 0,
+        innerHeight: window.innerHeight || 0,
+        reason: "init",
+        ts: nowIso(),
+        nearBottom: false
+      }
+    };
+
+    const clamp = (v, min, max)=> Math.min(Math.max(isFinite(v) ? v : min, min), max);
+
+    function compute(reason){
+      const vv = (window.visualViewport && isFinite(window.visualViewport.height)) ? window.visualViewport : null;
+      const innerH = Math.max(0, window.innerHeight || 0);
+      const layoutH = Math.max(innerH, getViewportHeight(), (docEl && docEl.clientHeight) || 0, 320);
+      const vvHeightRaw = vv ? vv.height : layoutH;
+      const viewportHeight = clamp(vvHeightRaw, layoutH * 0.35, layoutH * 1.15);
+      const vvTop = clamp(vv ? vv.offsetTop || 0 : 0, 0, layoutH);
+      const keyboardHeight = vv
+        ? clamp((innerH || layoutH) - viewportHeight - vvTop, 0, layoutH * 0.8)
+        : 0;
+      const composerRect = chatForm ? chatForm.getBoundingClientRect() : null;
+      const composerHeight = composerRect ? composerRect.height : 0;
+      const chatGap = Math.max(0, composerHeight + keyboardHeight);
+
+      return {
+        viewportHeight,
+        visualViewportHeight: vv ? viewportHeight : null,
+        visualViewportTop: vvTop,
+        keyboardHeight,
+        composerHeight,
+        chatGap,
+        innerHeight: innerH,
+        reason,
+        ts: nowIso(),
+        nearBottom: !!(messagesEl && isNearBottom(messagesEl, 120))
+      };
+    }
+
+    function applyMetrics(metrics, stickToBottom){
+      if (!metrics || !docEl) return;
+      const unit = metrics.viewportHeight ? (metrics.viewportHeight * 0.01) : 0;
+      if (unit) docEl.style.setProperty("--valki-vh", unit.toFixed(4) + "px");
+      docEl.style.setProperty("--vvh", metrics.viewportHeight + "px");
+      docEl.style.setProperty("--vvTop", metrics.visualViewportTop + "px");
+      docEl.style.setProperty("--valki-kb", metrics.keyboardHeight + "px");
+      docEl.style.setProperty("--composer-h", metrics.composerHeight + "px");
+      docEl.style.setProperty("--valki-chat-gap", metrics.chatGap + "px");
+
+      state.lastMetrics = metrics;
+
+      if (stickToBottom && isChatOpen() && messagesEl){
+        requestAnimationFrame(()=>{ messagesEl.scrollTop = messagesEl.scrollHeight; });
+      }
+
+      logDebug("viewport:apply", overlay, {
+        reason: metrics.reason,
+        viewportHeight: metrics.viewportHeight,
+        vvTop: metrics.visualViewportTop,
+        keyboard: metrics.keyboardHeight,
+        composer: metrics.composerHeight,
+        chatGap: metrics.chatGap,
+        nearBottom: stickToBottom
+      });
+    }
+
+    function run(reason, opts={}){
+      const forceStick = !!opts.forceStick;
+      const stick = forceStick || (messagesEl && isNearBottom(messagesEl, 110));
+      const metrics = compute(reason);
+      applyMetrics(metrics, stick);
+      return metrics;
+    }
+
+    function schedule(reason, { delay=45, lateDelay=120, forceStick=false } = {}){
+      const stick = forceStick || (messagesEl && isNearBottom(messagesEl, 110));
+      if (state.timers.main) clearTimeout(state.timers.main);
+      if (state.timers.late) clearTimeout(state.timers.late);
+
+      const kickoff = ()=> requestAnimationFrame(()=> run(reason, { forceStick: stick }));
+      state.timers.main = setTimeout(kickoff, Math.max(0, delay));
+
+      if (Number.isFinite(lateDelay) && lateDelay > 0){
+        state.timers.late = setTimeout(()=> run(reason + ":late", { forceStick: stick }), Math.max(0, delay + lateDelay));
+      }
+    }
+
+    function onComposerChange(reason){
+      return run(reason || "composer-change", { forceStick:true });
+    }
+
+    function onChatOpen(){
+      state.chatOpen = true;
+      schedule("chat-open", { delay:16, lateDelay:180, forceStick:true });
+    }
+
+    function onChatClose(){
+      state.chatOpen = false;
+      const baseHeight = Math.max(
+        getViewportHeight(),
+        window.innerHeight || 0,
+        state.lastMetrics.viewportHeight || 0,
+        320
+      );
+      const composerHeight = state.lastMetrics.composerHeight || 0;
+      const metrics = {
+        viewportHeight: baseHeight,
+        visualViewportHeight: baseHeight,
+        visualViewportTop: 0,
+        keyboardHeight: 0,
+        composerHeight,
+        chatGap: Math.max(0, composerHeight),
+        innerHeight: window.innerHeight || baseHeight,
+        reason: "chat-close",
+        ts: nowIso(),
+        nearBottom: false
+      };
+      applyMetrics(metrics, false);
+    }
+
+    function bind(){
+      if (state.bound) return;
+      state.bound = true;
+      const vv = window.visualViewport;
+      if (vv){
+        vv.addEventListener("resize", ()=> schedule("vv-resize", { delay:20, lateDelay:140, forceStick:true }), { passive:true });
+        vv.addEventListener("scroll", ()=> schedule("vv-scroll", { delay:10, lateDelay:140, forceStick:true }), { passive:true });
+      }
+      window.addEventListener("resize", ()=> schedule("win-resize", { delay:30, lateDelay:150 }), { passive:true });
+      window.addEventListener("orientationchange", ()=> schedule("orientation", { delay:80, lateDelay:200, forceStick:true }), { passive:true });
+      window.addEventListener("focus", (e)=>{ if (chatForm && chatForm.contains(e.target)) schedule("focus", { delay:35, lateDelay:160, forceStick:true }); }, true);
+      window.addEventListener("blur", (e)=>{ if (chatForm && chatForm.contains(e.target)) schedule("blur", { delay:35, lateDelay:140 }); }, true);
+    }
+
+    function diag(){
+      const dump = Object.assign({}, state.lastMetrics, {
+        chatOpen: state.chatOpen,
+        bodyLocked: isBodyScrollLocked(),
+        scrollY: window.scrollY,
+        htmlClassList: Array.from(document.documentElement.classList || [])
+      });
+      console.log("[VALKI][diag]", dump);
+      return dump;
+    }
+
+    return { run, schedule, onComposerChange, onChatOpen, onChatClose, bind, diag };
+  }
+
   function getViewportHeight(){
     return window.innerHeight ||
       (document.documentElement && document.documentElement.clientHeight) ||
       0;
   }
 
-  function applyViewportUnit(){
-    const h = getViewportHeight();
-    if (!h) return;
-    try{
-      document.documentElement.style.setProperty("--valki-vh", (h * 0.01).toFixed(4) + "px");
-    }catch{}
+  function syncViewportLayout(reason, opts){
+    if (!viewportManager) return;
+    viewportManager.run(reason, opts);
   }
 
-  function bindViewportUnitListeners(){
-    applyViewportUnit();
+  function scheduleViewportSync(reason, delay=45, lateDelay=120, forceStick=false){
+    if (!viewportManager) return;
+    viewportManager.schedule(reason, { delay, lateDelay, forceStick });
   }
 
   function isNearBottom(el, px=90){
@@ -1895,7 +1979,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     const stickToBottom = !!(opts && opts.stickToBottom);
     requestAnimationFrame(()=>{
       try{ chatInput.focus({ preventScroll:true }); }catch{ chatInput.focus(); }
-      scheduleViewportSync(reason || "focus-chat-input-safe", 45, 140);
+      scheduleViewportSync(reason || "focus-chat-input-safe", 45, 140, true);
       if (stickToBottom){
         requestAnimationFrame(()=> scrollToBottom(true));
       }
@@ -2649,6 +2733,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     document.body.style.overflow = "hidden";
     document.body.style.touchAction = "none";
     document.documentElement.classList.add("valki-chat-open");
+    scheduleViewportSync("lock-body", 10, 180);
     logDebug("lockBodyScroll", overlay, { htmlClassList: Array.from(document.documentElement.classList || []), scrollY:y });
   }
   function unlockBodyScroll(){
@@ -2664,11 +2749,13 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     delete document.body.dataset.valkiScrollLocked;
     delete document.body.dataset.valkiScrollY;
     document.documentElement.classList.remove("valki-chat-open");
+    scheduleViewportSync("unlock-body", 10, 180);
     logDebug("unlockBodyScroll", overlay, { htmlClassList: Array.from(document.documentElement.classList || []), scrollY:y });
     if (hadLock) window.scrollTo({ top:y, behavior:"auto" });
   }
 
   function openOverlay(){
+    viewportManager.onChatOpen();
     syncViewportLayout("open");
     logDebug("openOverlay:start", overlay);
     if (document.activeElement === searchInput){
@@ -2684,16 +2771,19 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
         scrollToBottom(true);
         clampComposer();
         showPrivacyNoticeIfNeeded();
+        scheduleViewportSync("open:focused", 50, 200, true);
       });
     });
   }
 
   function closeOverlay(reason){
     const why = (typeof reason === "string") ? reason : "closeOverlay";
+    blurChatInputSafe("closeOverlay");
     logDebug("closeOverlay:start", overlay);
     syncViewportLayout("close:start");
     setVisible(overlay, false, why);
     unlockBodyScroll();
+    viewportManager.onChatClose();
     syncViewportLayout("close:end");
     removePrivacyNotice();
   }
@@ -2704,6 +2794,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     if (confirmOverlay && confirmOverlay.classList.contains("is-visible")) closeConfirm(why);
     if (authOverlay && authOverlay.classList.contains("is-visible")) closeAuthOverlay({ force:true, reason:why });
     if (isChatOpen()) closeOverlay(why);
+    if (viewportManager) viewportManager.onChatClose();
     unlockBodyScroll();
   }
 
@@ -2800,7 +2891,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     chatInput.style.height = next + "px";
 
     chatInput.style.overflowY = (scrollH > maxH) ? "auto" : "hidden";
-    syncViewportLayout("composer");
+    if (viewportManager) viewportManager.onComposerChange("composer");
   }
 
   /* ===============================
@@ -3570,23 +3661,24 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   }
 
   function handleViewportResize(){
-    applyViewportUnit();
+    scheduleViewportSync("handle-resize", 10, 180);
     if (document.activeElement === chatInput) clampComposer();
     scrollToBottom(false);
   }
 
   window.addEventListener("resize", ()=>{
     if (isEditingInput()) return;
-    applyViewportUnit();
+    scheduleViewportSync("win-resize-handler", 20, 160);
   }, { passive:true });
 
   window.addEventListener("orientationchange", ()=>{
-    setTimeout(handleViewportResize, 120);
+    scheduleViewportSync("orientationchange-handler", 80, 240);
   }, { passive:true });
 
   if (document.fonts && document.fonts.ready){
     document.fonts.ready.then(()=>{
       if (document.activeElement === chatInput) clampComposer();
+      scheduleViewportSync("fonts-ready", 20, 120);
     }).catch(()=>{});
   }
 
