@@ -571,7 +571,7 @@ html.valki-chat-open .valki-logout-overlay{
   flex-direction:column;
   align-items:stretch;
   justify-content:flex-start;
-  padding:0 16px var(--valki-kb);
+  padding:0 16px calc(var(--valki-kb) + env(safe-area-inset-bottom));
 }
 .valki-overlay.is-visible .valki-modal{
   opacity:1;
@@ -697,7 +697,7 @@ html.valki-chat-open header.valki-site-header{
 .valki-messages-inner:empty{ min-height:180px; }
 
 .valki-notice{
-  position: sticky;
+  position: sticky !important;
   bottom: calc(12px + env(safe-area-inset-bottom) + var(--valki-kb));
   margin: 0 auto 10px;
   max-width: 560px;
@@ -1584,27 +1584,30 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   let viewportSyncBound = false;
 
   function syncViewportLayout(reason){
-    const vv = window.visualViewport;
+    const vv = (window.visualViewport && isFinite(window.visualViewport.height)) ? window.visualViewport : null;
     const docEl = document.documentElement;
     const layoutH = getViewportHeight();
-    const innerH = Math.max(layoutH || 0, window.innerHeight || 0, 0);
+    const clientH = (docEl && docEl.clientHeight) || 0;
+    const innerH = Math.max(layoutH || 0, window.innerHeight || 0, clientH, 0);
     const clamp = (v, min, max)=> Math.min(Math.max(isFinite(v) ? v : min, min), max);
 
-    let vvh = vv && isFinite(vv.height) && vv.height > 0 ? vv.height : layoutH || innerH;
-    if (!vvh || !isFinite(vvh)) vvh = innerH || layoutH || 0;
-    let vvTop = vv && isFinite(vv.offsetTop) ? vv.offsetTop : 0;
-    vvTop = Math.max(0, vvTop || 0);
+    const vvHeightRaw = vv && isFinite(vv.height) ? vv.height : 0;
+    let vvh = vvHeightRaw > 0 ? vvHeightRaw : innerH || layoutH;
+    if (!vvh || !isFinite(vvh)) vvh = innerH || layoutH || clientH || 0;
 
-    const baseHeight = innerH || layoutH || 600;
-    const maxHeight = baseHeight + 160;
-    const minHeight = Math.max(120, Math.min(baseHeight, baseHeight * 0.5));
+    let vvTop = vv && isFinite(vv.offsetTop) ? vv.offsetTop : 0;
+    vvTop = clamp(vvTop || 0, 0, Math.max(innerH, 0));
+
+    const baseHeight = Math.max(innerH || 0, layoutH || 0, 320);
+    const maxHeight = Math.max(baseHeight + 160, baseHeight * 1.12);
+    const minHeight = Math.max(180, Math.min(baseHeight, baseHeight * 0.7));
     const resolvedHeight = clamp(vvh || baseHeight, minHeight, maxHeight);
 
     let vvOffset = (window.innerHeight || baseHeight) - resolvedHeight - vvTop;
     if (!isFinite(vvOffset)) vvOffset = 0;
-    vvOffset = clamp(vvOffset, 0, baseHeight * 0.75);
+    vvOffset = clamp(vvOffset, 0, Math.max(baseHeight * 0.8, 320));
 
-    const valkiKb = vvOffset;
+    const valkiKb = Math.max(0, vvOffset);
     const stickToBottom = messagesEl ? isNearBottom(messagesEl) : false;
 
     docEl.style.setProperty("--vvh", resolvedHeight + "px");
@@ -1625,19 +1628,25 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     logDebug("syncViewportLayout", overlay, { reason, vvh: resolvedHeight, vvTop, composerH, vvOffset, valkiKb, chatGap, nearBottom: stickToBottom });
   }
 
+  function scheduleViewportSync(reason, delay=45, lateDelay=120){
+    requestAnimationFrame(()=> setTimeout(()=> syncViewportLayout(reason), delay));
+    if (Number.isFinite(lateDelay) && lateDelay >= 0){
+      setTimeout(()=> syncViewportLayout(reason + ":late"), delay + lateDelay);
+    }
+  }
+
   function bindViewportSyncListeners(){
     if (viewportSyncBound) return;
     const vv = window.visualViewport;
-    const runSettled = (reason)=> requestAnimationFrame(()=> setTimeout(()=> syncViewportLayout(reason), 35));
     if (vv){
-      vv.addEventListener("resize", ()=> runSettled("vv-resize"), { passive:true });
-      vv.addEventListener("scroll", ()=> runSettled("vv-scroll"), { passive:true });
+      vv.addEventListener("resize", ()=> scheduleViewportSync("vv-resize"), { passive:true });
+      vv.addEventListener("scroll", ()=> scheduleViewportSync("vv-scroll"), { passive:true });
     }
-    window.addEventListener("resize", ()=> runSettled("win-resize"), { passive:true });
-    window.addEventListener("orientationchange", ()=> setTimeout(()=> syncViewportLayout("orientation"), 80), { passive:true });
+    window.addEventListener("resize", ()=> scheduleViewportSync("win-resize"), { passive:true });
+    window.addEventListener("orientationchange", ()=> scheduleViewportSync("orientation", 80, 140), { passive:true });
     if (chatInput){
-      chatInput.addEventListener("focus", ()=> runSettled("focus"));
-      chatInput.addEventListener("blur", ()=> runSettled("blur"));
+      chatInput.addEventListener("focus", ()=> scheduleViewportSync("focus", 50, 140));
+      chatInput.addEventListener("blur", ()=> scheduleViewportSync("blur", 50, 140));
     }
     viewportSyncBound = true;
   }
@@ -1880,13 +1889,13 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   }
   function blurChatInputSafe(reason){
     try{ chatInput.blur(); }catch{}
-    syncViewportLayout(reason || "blur-chat-input-safe");
+    scheduleViewportSync(reason || "blur-chat-input-safe", 45, 140);
   }
   function focusChatInputSafe(reason, opts={}){
     const stickToBottom = !!(opts && opts.stickToBottom);
     requestAnimationFrame(()=>{
       try{ chatInput.focus({ preventScroll:true }); }catch{ chatInput.focus(); }
-      syncViewportLayout(reason || "focus-chat-input-safe");
+      scheduleViewportSync(reason || "focus-chat-input-safe", 45, 140);
       if (stickToBottom){
         requestAnimationFrame(()=> scrollToBottom(true));
       }
