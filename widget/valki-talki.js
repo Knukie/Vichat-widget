@@ -2800,6 +2800,61 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   let attachments = []; // { id, name, type, url, size?, previewUrl }
   let pendingAttachRefocus = false;
 
+  function normalizeImagePayload(img){
+    if (!img || typeof img !== "object") return null;
+
+    const payloadImg = {};
+
+    if (img.name) payloadImg.name = String(img.name);
+    if (img.type) payloadImg.type = String(img.type);
+
+    const dataUrl = (typeof img.dataUrl === "string") ? img.dataUrl : "";
+    const url = (typeof img.url === "string") ? img.url : (typeof img.src === "string" ? img.src : "");
+
+    if (dataUrl) payloadImg.dataUrl = dataUrl;
+    if (url) payloadImg.url = url;
+
+    if (Number.isFinite(Number(img.size))) payloadImg.size = Number(img.size);
+
+    // Only keep images that have a usable string payload
+    if (!payloadImg.dataUrl && !payloadImg.url) return null;
+
+    return payloadImg;
+  }
+
+  function normalizeImagesPayload(images){
+    return Array.isArray(images)
+      ? images.map(normalizeImagePayload).filter(Boolean)
+      : [];
+  }
+
+  function buildSafeJsonBody(rawPayload){
+    const basePayload = {
+      message: typeof rawPayload.message === "string" ? rawPayload.message : "",
+      clientId: typeof rawPayload.clientId === "string" ? rawPayload.clientId : String(rawPayload.clientId || ""),
+      images: normalizeImagesPayload(rawPayload.images)
+    };
+
+    try{
+      return JSON.stringify(basePayload);
+    }catch(err){
+      console.warn("valki payload JSON serialization failed; stripping images", err, { payload: basePayload });
+    }
+
+    const fallbackPayload = {
+      message: basePayload.message,
+      clientId: basePayload.clientId,
+      images: []
+    };
+
+    try{
+      return JSON.stringify(fallbackPayload);
+    }catch(err){
+      console.error("valki payload fallback serialization failed; sending minimal payload", err, { payload: fallbackPayload });
+      return JSON.stringify({ message:"", clientId:"", images: [] });
+    }
+  }
+
   async function showAttachmentError(msg){
     if (!msg) return;
     await addMessage({ type:"bot", text:msg });
@@ -3261,6 +3316,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       type: a.type,
       size: a.size
     }));
+    const normalizedImagesForSend = normalizeImagesPayload(imagesForSend);
     const imagesForUi = validAttachments.map(a => ({
       url: a.url,
       name: a.name,
@@ -3274,7 +3330,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     await addMessage({ type:"user", text:messageText, images: imagesForUi });
 
     if (!isLoggedIn()){
-      guestHistory.push({ type:"user", text:messageText, images: imagesForSend });
+      guestHistory.push({ type:"user", text:messageText, images: normalizedImagesForSend });
       saveGuestHistory(guestHistory);
       bumpGuestCount();
     }
@@ -3284,7 +3340,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     const payload = {
       message: messageText,
       clientId,
-      images: imagesForSend
+      images: normalizedImagesForSend
     };
 
     const headers = { "Content-Type":"application/json" };
@@ -3295,7 +3351,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       const res = await fetch(API_VALKI, {
         method:"POST",
         headers,
-        body: JSON.stringify(payload)
+        body: buildSafeJsonBody(payload)
       });
 
       try{ typingRow.remove(); }catch{}
