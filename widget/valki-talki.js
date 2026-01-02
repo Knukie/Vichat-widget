@@ -2903,28 +2903,52 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     }
   }
 
+  function resolveUploadUrl(){
+    if (typeof API_UPLOAD !== "undefined" && API_UPLOAD){
+      return API_UPLOAD;
+    }
+    if (typeof API_BASE !== "undefined" && API_BASE){
+      return API_BASE + "/api/upload";
+    }
+    return new URL("/api/upload", window.location.href).toString();
+  }
+
   async function uploadFile(file){
     const form = new FormData();
     form.append("file", file, file.name);
 
-    const res = await fetch("/api/upload", {
+    const uploadUrl = resolveUploadUrl();
+    const headers = {};
+    const tok = getAuthToken();
+    if (tok){
+      headers.Authorization = "Bearer " + tok;
+    }
+
+    const res = await fetch(uploadUrl, {
       method:"POST",
+      headers: Object.keys(headers).length ? headers : undefined,
       body: form
     });
 
     if (!res.ok){
+      const host = new URL(uploadUrl).host;
+      console.warn("[VALKI] upload failed", { host, status: res.status });
       throw new Error("Upload failed (" + res.status + ")");
     }
 
-    const fileMeta = await res.json().catch(()=> null);
-    if (!fileMeta || !fileMeta.url){
+    const payload = await res.json().catch(()=> null);
+    const fileMeta = payload && (payload.file || payload);
+    const uploadedUrl = fileMeta && fileMeta.url;
+    if (!uploadedUrl || String(uploadedUrl).startsWith("data:")){
+      const host = new URL(uploadUrl).host;
+      console.warn("[VALKI] upload invalid response", { host, status: res.status });
       throw new Error("Upload response missing url");
     }
 
     return {
-      url: fileMeta.url,
-      name: file.name || "image",
-      type: file.type || "image/jpeg",
+      url: uploadedUrl,
+      name: fileMeta.name || file.name || "image",
+      type: fileMeta.type || file.type || "image/jpeg",
       size: Number.isFinite(Number(fileMeta.size)) ? Number(fileMeta.size) : file.size
     };
   }
