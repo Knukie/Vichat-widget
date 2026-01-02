@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Valki Talki Widget Step 4</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        padding: 24px;
+        background: #0b0b0b;
+        color: #fff;
+      }
+      .instructions {
+        max-width: 640px;
+        line-height: 1.5;
+      }
+    </style>
+    <script defer src="../widget/valki-talki.js"></script>
+  </head>
+  <body>
+    <div class="instructions">
+      <h1>Step 4 Manual Checks</h1>
+      <ol>
+        <li>Send 3 guest messages. Login prompt should appear.</li>
+        <li>Send up to 6 guest messages. Composer should hard lock with login required.</li>
+        <li>If a token exists in localStorage, refresh to load /api/messages.</li>
+      </ol>
+    </div>
+  </body>
+</html>
