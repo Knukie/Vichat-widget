@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const widgetDir = path.join(__dirname, 'widget');
+const publicDir = path.join(__dirname, 'public');
 const cspTestPath = path.join(__dirname, 'test', 'csp-test.html');
 const applyWidgetCors = (res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -23,7 +23,7 @@ app.options('/widget/*', (_req, res) => {
 
 app.use(
   '/widget',
-  express.static(widgetDir, {
+  express.static(publicDir, {
     setHeaders: (res) => {
       applyWidgetCors(res);
       res.setHeader('Cache-Control', 'public, max-age=60');

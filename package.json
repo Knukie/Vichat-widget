@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "node server.js",
-    "build": "node build/esbuild.mjs"
+    "build": "node build/esbuild.mjs && npm run check:widget",
+    "check:widget": "node build/check-widget-placeholders.mjs"
   },
   "dependencies": {
     "express": "^4.18.2"
