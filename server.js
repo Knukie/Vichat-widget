@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 3000;
 const widgetPath = path.join(__dirname, 'widget', 'valki-talki.js');
 const widgetMainPath = path.join(__dirname, 'widget', 'valki-talki-main.js');
 const widgetCssPath = path.join(__dirname, 'widget', 'valki-talki.css');
+const widgetManifestPath = path.join(__dirname, 'widget', 'valki-talki.manifest.json');
 const cspTestPath = path.join(__dirname, 'test', 'csp-test.html');
 
 app.get('/valki-talki.js', (_req, res) => {
@@ -28,6 +29,12 @@ app.get('/valki-talki.css', (_req, res) => {
   res.setHeader('Content-Type', 'text/css; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=60');
   res.sendFile(widgetCssPath);
+});
+
+app.get('/valki-talki.manifest.json', (_req, res) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=60');
+  res.sendFile(widgetManifestPath);
 });
 
 app.get('/test/csp', (_req, res) => {
