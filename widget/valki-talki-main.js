@@ -1,6 +1,12 @@
 (() => {
   if (customElements.get('valki-talki-widget')) return;
 
+  const BASE_URL = window.__VALKI_BASE_URL__ || 'https://auth.valki.wiki';
+  const HISTORY_KEY = 'valki_history_vNext';
+  const CLIENT_ID_KEY = 'valki_client_id';
+  const REQUEST_TIMEOUT_MS = 20000;
+  const FALLBACK_REPLY = 'Thanks for your message.';
+
   class ValkiTalkiWidget extends HTMLElement {
     constructor() {
       super();
@@ -8,9 +14,10 @@
       this._lockState = null;
       this._messages = [];
       this._typing = false;
-      this._pendingReplies = 0;
-      this._typingTimers = new Set();
       this._confirmOpen = false;
+      this._isSending = false;
+      this._abortController = null;
+      this._clientId = null;
       this._onKeyDown = (event) => {
         if (event.key !== 'Escape') return;
         if (this._confirmOpen) {
@@ -27,6 +34,8 @@
       shadow.innerHTML = `
         <style>
           :host{all:initial;}*,*::before,*::after{box-sizing:border-box;}
+          .badge{position:fixed;right:20px;bottom:20px;z-index:2147483645;border:0;border-radius:999px;background:#4b7bff;color:#fff;padding:10px 16px;font-size:13px;cursor:pointer;box-shadow:0 10px 24px rgba(0,0,0,.35);font-family:system-ui,sans-serif;}
+          :host(.open) .badge{display:none;}
           .landing{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;z-index:2147483646;pointer-events:auto;font-family:system-ui,sans-serif;}
           :host(.open) .landing{display:none;}
           .landing-card{width:min(520px,92vw);background:#111;color:#fff;border-radius:20px;padding:24px;box-shadow:0 16px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:16px;}
@@ -35,6 +44,7 @@
           .landing-input{flex:1;border-radius:999px;border:1px solid #2a2a2a;background:#1c1c1c;color:#fff;padding:12px 16px;font-size:14px;outline:none;}
           .landing-input:focus{border-color:#4b7bff;}
           .landing-send{border:0;background:#4b7bff;color:#fff;border-radius:999px;padding:12px 18px;font-size:14px;cursor:pointer;}
+          .landing-send[disabled]{opacity:.6;cursor:default;}
           .overlay{position:fixed;inset:0;display:none;background:#0b0b0b;z-index:2147483647;font-family:system-ui,sans-serif;color:#fff;}
           .overlay.open{display:flex;}
           .chat{width:100%;height:100%;display:flex;flex-direction:column;}
@@ -55,6 +65,7 @@
           .composer textarea{flex:1;border-radius:16px;border:1px solid #2a2a2a;background:#151515;color:#fff;padding:10px 12px;font-size:14px;line-height:1.4;resize:none;outline:none;min-height:42px;max-height:140px;overflow-y:hidden;}
           .composer textarea:focus{border-color:#4b7bff;}
           .composer button{border:0;background:#4b7bff;color:#fff;border-radius:14px;padding:10px 16px;font-size:14px;cursor:pointer;}
+          .composer button[disabled]{opacity:.6;cursor:default;}
           .confirm{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);z-index:2147483648;font-family:system-ui,sans-serif;}
           .confirm.open{display:flex;}
           .confirm-dialog{width:min(360px,90vw);background:#111;color:#fff;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:16px;}
@@ -63,6 +74,7 @@
           .confirm-btn.cancel{background:#2a2a2a;color:#fff;}
           .confirm-btn.delete{background:#ff4b4b;color:#fff;}
         </style>
+        <button class="badge" type="button" aria-label="Open Valki Talki">Valki</button>
         <div class="landing" aria-hidden="false">
           <div class="landing-card">
             <h1 class="landing-title">Crypto stuck? Explained.</h1>
@@ -99,25 +111,31 @@
         </div>
       `;
 
+      this._badge = shadow.querySelector('.badge');
       this._landingForm = shadow.querySelector('.landing-form');
       this._landingInput = shadow.querySelector('.landing-input');
+      this._landingSend = shadow.querySelector('.landing-send');
       this._overlay = shadow.querySelector('.overlay');
       this._messagesEl = shadow.querySelector('.messages');
       this._composerForm = shadow.querySelector('.composer');
       this._chatInput = shadow.querySelector('.chat-input');
+      this._sendButton = shadow.querySelector('.send');
       this._close = shadow.querySelector('.close');
       this._delete = shadow.querySelector('.delete');
       this._confirm = shadow.querySelector('.confirm');
       this._confirmCancel = shadow.querySelector('.confirm-btn.cancel');
       this._confirmDelete = shadow.querySelector('.confirm-btn.delete');
 
+      this._badge.addEventListener('click', () => this.open());
+
       this._landingForm.addEventListener('submit', (event) => {
         event.preventDefault();
+        if (this._isSending) return;
         const value = this._landingInput.value.trim();
         if (!value) return;
         this._landingInput.value = '';
         this.open();
-        this._sendMessage(value);
+        void this._sendMessage(value);
       });
 
       this._composerForm.addEventListener('submit', (event) => {
@@ -147,8 +165,6 @@
     disconnectedCallback() {
       document.removeEventListener('keydown', this._onKeyDown);
       if (this._open) this._unlockBody();
-      this._typingTimers.forEach((timer) => clearTimeout(timer));
-      this._typingTimers.clear();
     }
 
     open() {
@@ -171,35 +187,115 @@
     }
 
     _handleChatSubmit() {
+      if (this._isSending) return;
       const value = this._chatInput.value.trim();
       if (!value) return;
       this._chatInput.value = '';
       this._autoGrow(this._chatInput);
-      this._sendMessage(value);
+      void this._sendMessage(value);
     }
 
-    _sendMessage(value) {
-      this._messages.push({ role: 'user', content: value });
+    async _sendMessage(value) {
+      if (this._isSending) return;
+      this._messages.push({ role: 'user', text: value });
       this._saveHistory();
       this._renderMessages();
-      this._startTyping();
+      this._setTyping(true);
+      this._setSendingState(true);
+      try {
+        const reply = await this._requestReply(value);
+        this._messages.push({ role: 'bot', text: reply });
+      } catch (error) {
+        this._messages.push({ role: 'bot', text: 'Something went wrong talking to Valki.' });
+      } finally {
+        this._setTyping(false);
+        this._setSendingState(false);
+        this._saveHistory();
+        this._renderMessages(true);
+      }
     }
 
-    _startTyping() {
-      this._pendingReplies += 1;
-      if (!this._typing) {
-        this._typing = true;
-        this._renderMessages();
+    _setTyping(isTyping) {
+      if (this._typing === isTyping) return;
+      this._typing = isTyping;
+      this._renderMessages();
+    }
+
+    _setSendingState(isSending) {
+      this._isSending = isSending;
+      if (this._landingSend) this._landingSend.disabled = isSending;
+      if (this._sendButton) this._sendButton.disabled = isSending;
+    }
+
+    async _requestReply(message) {
+      const controller = new AbortController();
+      this._abortController = controller;
+      let logged = false;
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+      try {
+        const response = await fetch(`${BASE_URL}/api/valki`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message,
+            clientId: this._getClientId()
+          }),
+          signal: controller.signal
+        });
+
+        if (!response.ok) {
+          const messageText = await response.text().catch(() => response.statusText);
+          this._logApiError(response.status, messageText || response.statusText);
+          logged = true;
+          throw new Error('api error');
+        }
+
+        const data = await response.json().catch(() => ({}));
+        const reply = typeof data.reply === 'string' ? data.reply.trim() : '';
+        return reply || FALLBACK_REPLY;
+      } catch (error) {
+        if (!logged) {
+          const status = error && error.name === 'AbortError' ? 'timeout' : 'network';
+          const messageText = error && error.message ? error.message : 'Request failed';
+          this._logApiError(status, messageText);
+        }
+        throw error;
+      } finally {
+        clearTimeout(timeoutId);
+        if (this._abortController === controller) {
+          this._abortController = null;
+        }
       }
-      const timer = setTimeout(() => {
-        this._typingTimers.delete(timer);
-        this._pendingReplies = Math.max(0, this._pendingReplies - 1);
-        this._messages.push({ role: 'bot', content: 'Skeleton reply ✅ (API comes in Step 3)' });
-        this._saveHistory();
-        if (this._pendingReplies === 0) this._typing = false;
-        this._renderMessages();
-      }, 450);
-      this._typingTimers.add(timer);
+    }
+
+    _logApiError(status, message) {
+      console.error('[ValkiTalki] api error', { status, message });
+    }
+
+    _getClientId() {
+      if (this._clientId) return this._clientId;
+      try {
+        const stored = localStorage.getItem(CLIENT_ID_KEY);
+        if (stored) {
+          this._clientId = stored;
+          return stored;
+        }
+      } catch (error) {
+        // Ignore storage errors.
+      }
+      const generated = window.crypto && window.crypto.randomUUID
+        ? window.crypto.randomUUID()
+        : `client_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      this._clientId = generated;
+      try {
+        localStorage.setItem(CLIENT_ID_KEY, generated);
+      } catch (error) {
+        // Ignore storage errors.
+      }
+      return generated;
     }
 
     _renderMessages(forceScroll = false) {
@@ -212,7 +308,7 @@
         row.className = `message-row ${message.role}`;
         const bubble = document.createElement('div');
         bubble.className = 'bubble';
-        bubble.textContent = message.content;
+        bubble.textContent = message.text;
         row.appendChild(bubble);
         fragment.appendChild(row);
       });
@@ -254,11 +350,22 @@
 
     _loadHistory() {
       try {
-        const raw = localStorage.getItem('valki_history_vNext');
+        const raw = localStorage.getItem(HISTORY_KEY);
         if (!raw) return;
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          this._messages = parsed.filter((item) => item && (item.role === 'user' || item.role === 'bot'));
+          this._messages = parsed.reduce((acc, item) => {
+            if (!item || (item.role !== 'user' && item.role !== 'bot')) return acc;
+            const text = typeof item.text === 'string'
+              ? item.text
+              : typeof item.content === 'string'
+                ? item.content
+                : '';
+            if (typeof text === 'string') {
+              acc.push({ role: item.role, text });
+            }
+            return acc;
+          }, []);
         }
       } catch (error) {
         this._messages = [];
@@ -267,7 +374,7 @@
 
     _saveHistory() {
       try {
-        localStorage.setItem('valki_history_vNext', JSON.stringify(this._messages));
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(this._messages));
       } catch (error) {
         // Ignore storage errors.
       }
@@ -287,12 +394,9 @@
 
     _clearHistory() {
       this._messages = [];
-      this._typing = false;
-      this._pendingReplies = 0;
-      this._typingTimers.forEach((timer) => clearTimeout(timer));
-      this._typingTimers.clear();
+      this._setTyping(false);
       try {
-        localStorage.removeItem('valki_history_vNext');
+        localStorage.removeItem(HISTORY_KEY);
       } catch (error) {
         // Ignore storage errors.
       }

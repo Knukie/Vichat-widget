@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' https://auth.valki.wiki; style-src 'self' https://auth.valki.wiki; img-src 'self' https://auth.valki.wiki data:; connect-src 'self' https://auth.valki.wiki; frame-ancestors 'none'; base-uri 'none'; object-src 'none';"
+    />
+    <title>Valki Talki Strict CSP</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        padding: 24px;
+        background: #0b0b0b;
+        color: #fff;
+      }
+    </style>
+    <script defer src="../widget/valki-talki.js"></script>
+  </head>
+  <body>
+    <h1>Strict CSP Test</h1>
+    <p>Use the Valki badge to open chat and send a message.</p>
+  </body>
+</html>
