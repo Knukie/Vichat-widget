@@ -34,3 +34,5 @@ Add this to any HTML page (update the host to your Railway deployment URL):
 ```html
 <script src="https://YOUR-RAILWAY-URL/valki-talki.js" defer></script>
 ```
+
+Tip: clear your browser cache if you don't see the latest widget updates after deployment.
