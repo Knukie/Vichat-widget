@@ -31,7 +31,7 @@
       return document.currentScript;
     }
     const scripts = Array.from(document.querySelectorAll('script[src]'));
-    return scripts.find((script) => (script.getAttribute('src') || '').includes('valki-talki')) || null;
+    return scripts.find((script) => (script.getAttribute('src') || '').includes('valki-talki.js')) || null;
   };
   const resolveBaseUrl = (scriptEl) => {
     const override = scriptEl ? scriptEl.getAttribute('data-valki-src-base') : null;
@@ -107,6 +107,12 @@
     const mainFile = (scriptEl && scriptEl.getAttribute('data-valki-main-src')) || manifest.main || 'valki-talki-main.js';
     const cssHref = buildAssetUrl(baseUrl, cssFile);
     const mainSrc = buildAssetUrl(baseUrl, mainFile);
+    console.log('[ValkiTalki] loader: resolved urls', {
+      baseUrl,
+      cssHref,
+      mainScriptSrc: mainSrc,
+      manifestUrl
+    });
     console.log('[ValkiTalki] loader: assets', {
       cssHref,
       mainScriptSrc: mainSrc,
