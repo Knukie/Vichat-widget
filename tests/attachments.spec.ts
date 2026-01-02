@@ -1,11 +1,13 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import { maybeRouteBuildAssets } from './helpers/buildAssets';
 
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
 test('strict csp attachments flow', async ({ page }) => {
   const pageUrl = new URL('/test/strict-csp.html', baseUrl).toString();
   const samplePath = path.join(__dirname, '../test/assets/sample.png');
+  await maybeRouteBuildAssets(page);
 
   await page.goto(pageUrl, { waitUntil: 'networkidle' });
 
