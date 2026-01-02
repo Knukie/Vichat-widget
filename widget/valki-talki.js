@@ -2828,23 +2828,22 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
         clientId: basePayload.clientId,
         imagesLength: Array.isArray(basePayload.images) ? basePayload.images.length : 0
       });
-    }
+      const fallbackPayload = {
+        message: basePayload.message,
+        clientId: basePayload.clientId,
+        images: []
+      };
 
-    const fallbackPayload = {
-      message: basePayload.message,
-      clientId: basePayload.clientId,
-      images: []
-    };
-
-    try{
-      return JSON.stringify(fallbackPayload);
-    }catch(err){
-      console.error("valki payload fallback serialization failed; sending minimal payload", err, {
-        message: fallbackPayload.message,
-        clientId: fallbackPayload.clientId,
-        imagesLength: Array.isArray(fallbackPayload.images) ? fallbackPayload.images.length : 0
-      });
-      return JSON.stringify({ message:"", clientId:"", images: [] });
+      try{
+        return JSON.stringify(fallbackPayload);
+      }catch(err){
+        console.error("valki payload fallback serialization failed; sending minimal payload", err, {
+          message: fallbackPayload.message,
+          clientId: fallbackPayload.clientId,
+          imagesLength: Array.isArray(fallbackPayload.images) ? fallbackPayload.images.length : 0
+        });
+        return JSON.stringify({ message:"", clientId:"", images: [] });
+      }
     }
   }
 
@@ -3303,10 +3302,10 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   async function askValki(text){
     if (isSending) return;
     const q = cleanText(text);
-    const hasImages = attachments.length > 0;
+    const attachmentsSnapshot = attachments.slice();
+    const hasImages = attachmentsSnapshot.length > 0;
     if (!q && !hasImages) return;
 
-    const attachmentsSnapshot = attachments.slice();
     if (DEBUG){
       console.log("[VALKI][send] attachments:start", {
         count: attachmentsSnapshot.length,
@@ -3350,7 +3349,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
 
     const typingRow = createTypingRow();
 
-    const imagesForSend = attachments.map(a => ({
+    const imagesForSend = attachmentsSnapshot.map(a => ({
       url: String(a.url || ""),
       name: String(a.name || "image"),
       type: String(a.type || "image/jpeg")
@@ -3368,21 +3367,23 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       images: normalizedImagesForSend
     };
 
-    try{
-      const hosts = normalizedImagesForSend.map((img)=>{
-        try{
-          return new URL(img.url, window.location.href).host || "";
-        }catch{
-          return "";
-        }
-      }).filter(Boolean);
-      const lengths = normalizedImagesForSend.map(img => (img.url ? img.url.length : 0));
-      console.log("[widget] sending images", {
-        imagesLen: normalizedImagesForSend.length,
-        hosts,
-        lengths
-      });
-    }catch{}
+    if (DEBUG){
+      try{
+        const hosts = normalizedImagesForSend.map((img)=>{
+          try{
+            return new URL(img.url, window.location.href).host || "";
+          }catch{
+            return "";
+          }
+        }).filter(Boolean);
+        const lengths = normalizedImagesForSend.map(img => (img.url ? img.url.length : 0));
+        console.log("[widget] sending images", {
+          imagesLen: normalizedImagesForSend.length,
+          hosts,
+          lengths
+        });
+      }catch{}
+    }
 
     const headers = { "Content-Type":"application/json" };
     const tok = getAuthToken();
@@ -3392,8 +3393,8 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
       const body = buildSafeJsonBody(payload);
       if (DEBUG){
         console.log("[VALKI][send] payload", {
-          length: body.length,
-          hasImages: body.includes("\"images\":[{")
+          length: typeof body === "string" ? body.length : 0,
+          hasImages: typeof body === "string" ? body.includes("\"images\":[{") : false
         });
       }
       const res = await fetch(API_VALKI, {
