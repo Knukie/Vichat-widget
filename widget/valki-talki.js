@@ -1,5 +1,9 @@
 (() => {
   if (window.__VALKI_TALKI_LOADED__ || document.getElementById('valki-root')) {
+    console.log('[ValkiTalki] Early return: already loaded or #valki-root exists.', {
+      loaded: !!window.__VALKI_TALKI_LOADED__,
+      hasRoot: !!document.getElementById('valki-root')
+    });
     return;
   }
   window.__VALKI_TALKI_LOADED__ = true;
@@ -33,7 +37,10 @@
   };
 
   const init = () => {
-    if (document.getElementById('valki-root')) return;
+    if (document.getElementById('valki-root')) {
+      console.log('[ValkiTalki] Early return: init found existing #valki-root.');
+      return;
+    }
 
     ensureViewportFitCover();
 
@@ -1458,11 +1465,25 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
 </div>`;
     const bgNode = container.querySelector("#valki-bg");
     const root = container.querySelector("#valki-root");
-    if (!root) return;
+    if (!root) {
+      console.log('[ValkiTalki] Early return: #valki-root missing in template.');
+      return;
+    }
 
     const mount = document.getElementById('valki-mount') || document.body;
     if (bgNode) mount.appendChild(bgNode);
     mount.appendChild(root);
+
+    const inlineTest = document.createElement('script');
+    inlineTest.textContent = 'window.__VALKI_INLINE_OK__ = true;';
+    try {
+      (document.head || document.documentElement).appendChild(inlineTest);
+    } catch (error) {
+      console.log('[ValkiTalki] Inline script test failed (possible CSP block).', error);
+    }
+    if (!window.__VALKI_INLINE_OK__) {
+      console.log('[ValkiTalki] Inline scripts appear blocked. CSP may be preventing execution.');
+    }
 
     const scriptTag = document.createElement('script');
     scriptTag.textContent = `(function(){
@@ -1566,16 +1587,41 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
   const logoutYes      = $("valki-logout-yes");
 
   const required = [
-    root, searchForm, searchInput, heroLoginBtn, badge, overlay, closeBtn,
-    messagesEl, messagesInner, chatForm, chatFormInner, chatInput, sendBtn,
-    attachBtn, fileInput, attachTray,
-    authOverlay, loginOutBtn, deleteAllBtn,
-    loginDiscordBtn, loginGoogleBtn, joinDiscordBtn,
-    confirmOverlay, confirmNo, confirmYes,
-    logoutOverlay, logoutNo, logoutYes
+    { id: "valki-root", el: root },
+    { id: "valki-search-form", el: searchForm },
+    { id: "valki-search-input", el: searchInput },
+    { id: "valki-hero-login-btn", el: heroLoginBtn },
+    { id: "valki-top-badge", el: badge },
+    { id: "valki-overlay", el: overlay },
+    { id: "valki-close", el: closeBtn },
+    { id: "valki-messages", el: messagesEl },
+    { id: "valki-messages-inner", el: messagesInner },
+    { id: "valki-chat-form", el: chatForm },
+    { id: "valki-chat-form-inner", el: chatFormInner },
+    { id: "valki-chat-input", el: chatInput },
+    { id: "valki-chat-send", el: sendBtn },
+    { id: "valki-chat-attach", el: attachBtn },
+    { id: "valki-file-input", el: fileInput },
+    { id: "valki-attachments", el: attachTray },
+    { id: "valki-auth-overlay", el: authOverlay },
+    { id: "valki-loginout-btn", el: loginOutBtn },
+    { id: "valki-deleteall-btn", el: deleteAllBtn },
+    { id: "valki-login-discord-btn", el: loginDiscordBtn },
+    { id: "valki-login-google-btn", el: loginGoogleBtn },
+    { id: "valki-join-discord-btn", el: joinDiscordBtn },
+    { id: "valki-confirm-overlay", el: confirmOverlay },
+    { id: "valki-confirm-no", el: confirmNo },
+    { id: "valki-confirm-yes", el: confirmYes },
+    { id: "valki-logout-overlay", el: logoutOverlay },
+    { id: "valki-logout-no", el: logoutNo },
+    { id: "valki-logout-yes", el: logoutYes }
   ];
 
-  if (required.some(el => !el)) return;
+  if (required.some(item => !item.el)) {
+    const missing = required.filter(item => !item.el).map(item => item.id);
+    console.log('[ValkiTalki] Early return: missing required elements.', missing);
+    return;
+  }
 
   document.documentElement.classList.add("valki-landing-ready");
   document.body.classList.add("valki-landing-ready");
@@ -3639,7 +3685,9 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     clampComposer();
   })();
 })();`;
+    console.log('[ValkiTalki] Appending inline script tag.');
     document.body.appendChild(scriptTag);
+    console.log('[ValkiTalki] Inline script tag appended.');
   };
 
   if (document.readyState === 'loading') {
