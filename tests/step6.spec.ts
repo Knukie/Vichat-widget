@@ -1,10 +1,12 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import { maybeRouteBuildAssets } from './helpers/buildAssets';
 
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
 test('step6 overlay open/close with escape', async ({ page }) => {
   const pageUrl = new URL('/test/step6.html', baseUrl).toString();
+  await maybeRouteBuildAssets(page);
   await page.goto(pageUrl, { waitUntil: 'networkidle' });
 
   const widget = page.locator('valki-talki-widget');
@@ -25,6 +27,7 @@ test('step6 overlay open/close with escape', async ({ page }) => {
 
 test('step6 text chat flow', async ({ page }) => {
   const pageUrl = new URL('/test/step6.html', baseUrl).toString();
+  await maybeRouteBuildAssets(page);
   await page.goto(pageUrl, { waitUntil: 'networkidle' });
 
   const widget = page.locator('valki-talki-widget');
@@ -45,6 +48,7 @@ test('step6 text chat flow', async ({ page }) => {
 test('step6 attachments flow', async ({ page }) => {
   const pageUrl = new URL('/test/step6.html', baseUrl).toString();
   const samplePath = path.join(__dirname, '../test/assets/sample.png');
+  await maybeRouteBuildAssets(page);
   await page.goto(pageUrl, { waitUntil: 'networkidle' });
 
   const widget = page.locator('valki-talki-widget');
@@ -71,6 +75,7 @@ test('step6 guest hard block disables composer', async ({ page }) => {
     window.__VALKI_TEST_GUEST_COUNT__ = 999;
   });
   const pageUrl = new URL('/test/step6.html', baseUrl).toString();
+  await maybeRouteBuildAssets(page);
   await page.goto(pageUrl, { waitUntil: 'networkidle' });
 
   const widget = page.locator('valki-talki-widget');

@@ -86,8 +86,8 @@
   };
   const scriptEl = findLoaderScript();
   const baseUrl = resolveBaseUrl(scriptEl);
-  const cssFile = (scriptEl && scriptEl.getAttribute('data-valki-css-href')) || '__CSS__';
-  const mainFile = (scriptEl && scriptEl.getAttribute('data-valki-main-src')) || '__MAIN__';
+  const cssFile = (scriptEl && scriptEl.getAttribute('data-valki-css-href')) || 'valki-talki.7ac16ae8.css';
+  const mainFile = (scriptEl && scriptEl.getAttribute('data-valki-main-src')) || 'valki-talki-main.4ae6efe7.js';
   const bootstrap = () => {
     const cssHref = buildAssetUrl(baseUrl, cssFile);
     const mainSrc = buildAssetUrl(baseUrl, mainFile);
