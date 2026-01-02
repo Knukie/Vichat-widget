@@ -3306,6 +3306,14 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     const hasImages = attachments.length > 0;
     if (!q && !hasImages) return;
 
+    const attachmentsSnapshot = attachments.slice();
+    if (DEBUG){
+      console.log("[VALKI][send] attachments:start", {
+        count: attachmentsSnapshot.length,
+        urls: attachmentsSnapshot.map(a => String(a && a.url || ""))
+      });
+    }
+
     if (guestHardBlocked()){
       openAuthOverlay({ hard:true });
       return;
@@ -3314,13 +3322,7 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     isSending = true;
     setSendingState(true);
 
-    const imagesForSend = attachments.map(a => ({
-      url: String(a.url || ""),
-      name: String(a.name || "image"),
-      type: String(a.type || "image/jpeg")
-    })).filter(x => x.url && !x.url.startsWith("data:"));
-    const normalizedImagesForSend = normalizeImagesPayload(imagesForSend);
-    const imagesForUi = attachments
+    const imagesForUi = attachmentsSnapshot
       .filter(a => a && a.url)
       .map(a => ({
         url: a.url,
@@ -3328,18 +3330,37 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
         type: a.type,
         size: a.size
       }));
+    const normalizedImagesForHistory = normalizeImagesPayload(
+      attachmentsSnapshot.map(a => ({
+        url: String(a.url || ""),
+        name: String(a.name || "image"),
+        type: String(a.type || "image/jpeg")
+      })).filter(x => x.url && !x.url.startsWith("data:"))
+    );
 
     const messageText = q || (hasImages ? "[image]" : "");
 
     await addMessage({ type:"user", text:messageText, images: imagesForUi });
 
     if (!isLoggedIn()){
-      guestHistory.push({ type:"user", text:messageText, images: normalizedImagesForSend });
+      guestHistory.push({ type:"user", text:messageText, images: normalizedImagesForHistory });
       saveGuestHistory(guestHistory);
       bumpGuestCount();
     }
 
     const typingRow = createTypingRow();
+
+    const imagesForSend = attachments.map(a => ({
+      url: String(a.url || ""),
+      name: String(a.name || "image"),
+      type: String(a.type || "image/jpeg")
+    })).filter(x => x.url && !x.url.startsWith("data:"));
+    const normalizedImagesForSend = normalizeImagesPayload(imagesForSend);
+
+    if (DEBUG){
+      console.log("[VALKI][send] imagesForSend", imagesForSend);
+      console.log("[VALKI][send] normalizedImagesForSend", normalizedImagesForSend);
+    }
 
     const payload = {
       message: messageText,
@@ -3368,10 +3389,17 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     if (tok) headers.Authorization = "Bearer " + tok;
 
     try{
+      const body = buildSafeJsonBody(payload);
+      if (DEBUG){
+        console.log("[VALKI][send] payload", {
+          length: body.length,
+          hasImages: body.includes("\"images\":[{")
+        });
+      }
       const res = await fetch(API_VALKI, {
         method:"POST",
         headers,
-        body: buildSafeJsonBody(payload)
+        body
       });
 
       try{ typingRow.remove(); }catch{}
@@ -3397,6 +3425,9 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
 
       await addMessage({ type:"bot", text:answer });
 
+      clearAttachments();
+      showAttachTray();
+
       if (!isLoggedIn()){
         guestHistory.push({ type:"bot", text:answer });
         saveGuestHistory(guestHistory);
@@ -3415,10 +3446,6 @@ html.valki-chat-open .valki-overlay .valki-chat-form{ margin-top: 0; }
     }finally{
       isSending = false;
       setSendingState(false);
-
-      // clear attachments after send attempt
-      clearAttachments();
-      showAttachTray();
 
       updateDeleteButtonVisibility();
       clampComposer();
