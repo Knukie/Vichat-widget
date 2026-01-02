@@ -1,8 +1,11 @@
 import {
   BASE_URL,
   GUEST_FREE_ROUND_SIZE,
-  GUEST_MAX_ROUNDS
+  GUEST_MAX_ROUNDS,
+  VALKI_WIDGET_VERSION
 } from '../core/config.js';
+import { getFeatureFlags } from '../core/featureFlags.js';
+import { isDebugEnabled, logEvent, setDiagState } from '../core/logger.js';
 import {
   clearGuestMeter,
   clearHistory,
@@ -17,7 +20,7 @@ import {
   writeGuestMeter,
   writeHistory
 } from '../core/storage.js';
-import { clearServerHistory, importGuestHistory, loadMessages, requestReply } from '../services/api.js';
+import { clearServerHistory, importGuestHistory, loadMessages, logApiError, requestReply } from '../services/api.js';
 import { fetchMe, openOAuth } from '../services/auth.js';
 import { handleImageFiles } from '../services/upload.js';
 import { createCookieObserver, isCookieModalPresent } from '../platform/cmpTermly.js';
@@ -25,7 +28,7 @@ import { lockBody, unlockBody } from '../platform/scrollLock.js';
 import { updateViewportHeight } from '../platform/viewport.js';
 import { renderMarkdown, renderMessages } from './render.js';
 
-const TEMPLATE = `<style>:host{all:initial;--valki-overlay-height:100dvh;font-family:system-ui,sans-serif;box-sizing:border-box;}*,*::before,*::after{box-sizing:border-box;}.badge{position:fixed;right:20px;bottom:20px;z-index:2147483645;border:0;border-radius:999px;background:#4b7bff;color:#fff;padding:10px 16px;font-size:13px;cursor:pointer;box-shadow:0 10px 24px rgba(0,0,0,.35);font-family:system-ui,sans-serif;}:host(.open) .badge{display:none;}.landing{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;z-index:2147483646;pointer-events:auto;font-family:system-ui,sans-serif;}:host(.open) .landing{display:none;}.landing-card{width:min(520px,92vw);background:#111;color:#fff;border-radius:20px;padding:24px;box-shadow:0 16px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:16px;}.landing-title{margin:0;font-size:24px;line-height:1.2;}.landing-form{display:flex;gap:10px;}.landing-input{flex:1;border-radius:999px;border:1px solid #2a2a2a;background:#1c1c1c;color:#fff;padding:12px 16px;font-size:14px;outline:none;}.landing-input:focus{border-color:#4b7bff;}.landing-send{border:0;background:#4b7bff;color:#fff;border-radius:999px;padding:12px 18px;font-size:14px;cursor:pointer;}.landing-send[disabled]{opacity:.6;cursor:default;}.overlay{position:fixed;left:0;right:0;top:0;height:var(--valki-overlay-height,100%);display:none;background:#0b0b0b;z-index:2147483647;font-family:system-ui,sans-serif;color:#fff;}.overlay.open{display:flex;}.chat{width:100%;height:100%;display:flex;flex-direction:column;}.header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.1);gap:12px;}.header-info{display:flex;flex-direction:column;gap:4px;}.header-title{font-size:16px;font-weight:600;}.header-session{font-size:12px;opacity:.75;}.header-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}.header-btn{border:0;background:#1d1d1d;color:#fff;padding:8px 12px;border-radius:999px;font-size:12px;cursor:pointer;}.messages{flex:1;overflow-y:auto;padding:20px 18px 12px;display:flex;flex-direction:column;gap:12px;}.message-row{display:flex;}.message-row.user{justify-content:flex-end;}.bubble{max-width:min(480px,78vw);padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5;background:#1d1d1d;color:#fff;word-break:break-word;}.message-row.user .bubble{background:#4b7bff;color:#fff;}.bubble p{margin:0 0 8px;}.bubble p:last-child{margin-bottom:0;}.bubble a{color:#9db6ff;text-decoration:none;}.bubble a:hover{text-decoration:underline;}.bubble code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:12px;background:rgba(255,255,255,.1);padding:2px 4px;border-radius:4px;}.bubble pre{margin:8px 0 0;padding:10px 12px;background:#0f0f0f;border-radius:12px;overflow:auto;}.bubble pre code{display:block;background:transparent;padding:0;font-size:12px;}.message-attachments{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}.message-attachment{width:120px;height:120px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:#111;}.message-attachment img{width:100%;height:100%;object-fit:cover;display:block;}.typing{display:inline-flex;gap:6px;align-items:center;font-size:13px;opacity:.7;}.typing-dot{width:6px;height:6px;border-radius:999px;background:#ccc;animation:blink 1s infinite ease-in-out;}.typing-dot:nth-child(2){animation-delay:.2s;}.typing-dot:nth-child(3){animation-delay:.4s;}@keyframes blink{0%,100%{opacity:.2;}50%{opacity:1;}}.composer{padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;gap:8px;}.composer-inner{display:flex;gap:10px;align-items:flex-end;}.composer textarea{flex:1;border-radius:16px;border:1px solid #2a2a2a;background:#151515;color:#fff;padding:10px 12px;font-size:14px;line-height:1.4;resize:none;outline:none;min-height:42px;max-height:140px;overflow-y:hidden;}.composer textarea:focus{border-color:#4b7bff;}.composer button{border:0;background:#4b7bff;color:#fff;border-radius:14px;padding:10px 16px;font-size:14px;cursor:pointer;}.composer button[disabled]{opacity:.6;cursor:default;}.attach{width:38px;height:38px;padding:0;border-radius:999px;background:#1d1d1d;color:#fff;display:flex;align-items:center;justify-content:center;}.file-input{display:none;}.attachments-tray{display:none;gap:8px;flex-wrap:wrap;}.attachments-tray.open{display:flex;}.attachment{width:64px;height:64px;border-radius:12px;overflow:hidden;position:relative;border:1px solid rgba(255,255,255,.12);background:#111;}.attachment img{width:100%;height:100%;object-fit:cover;display:block;}.attachment-remove{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:999px;border:0;background:rgba(0,0,0,.6);color:#fff;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;}.composer-disabled{display:none;font-size:12px;opacity:.7;}.composer-disabled.open{display:block;}.confirm{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);z-index:2147483650;font-family:system-ui,sans-serif;}.confirm.open{display:flex;}.confirm-dialog{width:min(360px,90vw);background:#111;color:#fff;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:16px;}.confirm-actions{display:flex;justify-content:flex-end;gap:8px;}.confirm-btn{border:0;border-radius:999px;padding:8px 14px;font-size:13px;cursor:pointer;}.confirm-btn.cancel{background:#2a2a2a;color:#fff;}.confirm-btn.delete{background:#ff4b4b;color:#fff;}.confirm-btn.logout{background:#4b7bff;color:#fff;}.auth-overlay{position:fixed;inset:0;background:rgba(10,10,10,.85);display:none;align-items:center;justify-content:center;z-index:2147483649;font-family:system-ui,sans-serif;color:#fff;}.auth-overlay.open{display:flex;}.auth-card{width:min(360px,92vw);background:#111;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:14px;box-shadow:0 16px 40px rgba(0,0,0,.45);}.auth-title{margin:0;font-size:18px;}.auth-text{font-size:13px;opacity:.8;line-height:1.4;}.auth-actions{display:flex;flex-direction:column;gap:10px;}.auth-btn{border:0;border-radius:999px;padding:10px 14px;font-size:13px;cursor:pointer;background:#2a2a2a;color:#fff;}.auth-btn.primary{background:#4b7bff;}.auth-btn.cookie{background:#1d1d1d;}.auth-dismiss{background:transparent;border:0;color:#aaa;font-size:12px;cursor:pointer;}</style><button class="badge" type="button" aria-label="Open Valki Talki">Valki</button><div class="landing" aria-hidden="false"><div class="landing-card"><h1 class="landing-title">Crypto stuck? Explained.</h1><form class="landing-form" autocomplete="off"><input class="landing-input" type="text" placeholder="Ask Valki..." /><button class="landing-send" type="submit">Send</button></form></div></div><div class="overlay" aria-hidden="true"><div class="chat" role="dialog" aria-modal="true"><div class="header"><div class="header-info"><div class="header-title">Valki Talki</div><div class="header-session">Guest 🟠</div></div><div class="header-actions"><button class="header-btn auth" type="button">Login</button><button class="header-btn delete" type="button">Delete</button><button class="header-btn close" type="button">Close</button></div></div><div class="messages" role="log" aria-live="polite"></div><form class="composer" autocomplete="off"><div class="composer-inner"><button class="attach" type="button" aria-label="Attach image">+</button><textarea class="chat-input" rows="1" placeholder="Type your message..."></textarea><button class="send" type="submit">Send</button></div><input class="file-input" type="file" accept="image/*" multiple /><div class="attachments-tray"></div><div class="composer-disabled">Login required to continue chatting.</div></form></div></div><div class="confirm delete-confirm" aria-hidden="true"><div class="confirm-dialog" role="dialog" aria-modal="true"><div>Delete all chat history?</div><div class="confirm-actions"><button class="confirm-btn cancel" type="button">Cancel</button><button class="confirm-btn delete" type="button">Delete</button></div></div></div><div class="confirm logout-confirm" aria-hidden="true"><div class="confirm-dialog" role="dialog" aria-modal="true"><div>Log out of Valki Talki?</div><div class="confirm-actions"><button class="confirm-btn cancel" type="button">Cancel</button><button class="confirm-btn logout" type="button">Log out</button></div></div></div><div class="auth-overlay" aria-hidden="true"><div class="auth-card" role="dialog" aria-modal="true"><h2 class="auth-title">Log in to continue</h2><div class="auth-text auth-message">Sign in to keep chatting.</div><div class="auth-actions"><button class="auth-btn primary auth-discord" type="button">Continue with Discord</button><button class="auth-btn primary auth-google" type="button">Continue with Google</button><button class="auth-btn cookie cookie-prefs" type="button">See cookie preferences</button></div><button class="auth-dismiss" type="button">Not now</button></div></div>`;
+const TEMPLATE = `<style>:host{all:initial;--valki-overlay-height:100dvh;font-family:system-ui,sans-serif;box-sizing:border-box;}*,*::before,*::after{box-sizing:border-box;}.badge{position:fixed;right:20px;bottom:20px;z-index:2147483645;border:0;border-radius:999px;background:#4b7bff;color:#fff;padding:10px 16px;font-size:13px;cursor:pointer;box-shadow:0 10px 24px rgba(0,0,0,.35);font-family:system-ui,sans-serif;}:host(.open) .badge{display:none;}.landing{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;z-index:2147483646;pointer-events:auto;font-family:system-ui,sans-serif;}:host(.open) .landing{display:none;}.landing-card{width:min(520px,92vw);background:#111;color:#fff;border-radius:20px;padding:24px;box-shadow:0 16px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:16px;}.landing-title{margin:0;font-size:24px;line-height:1.2;}.landing-form{display:flex;gap:10px;}.landing-input{flex:1;border-radius:999px;border:1px solid #2a2a2a;background:#1c1c1c;color:#fff;padding:12px 16px;font-size:14px;outline:none;}.landing-input:focus{border-color:#4b7bff;}.landing-send{border:0;background:#4b7bff;color:#fff;border-radius:999px;padding:12px 18px;font-size:14px;cursor:pointer;}.landing-send[disabled]{opacity:.6;cursor:default;}.overlay{position:fixed;left:0;right:0;top:0;height:var(--valki-overlay-height,100%);display:none;background:#0b0b0b;z-index:2147483647;font-family:system-ui,sans-serif;color:#fff;}.overlay.open{display:flex;}.chat{width:100%;height:100%;display:flex;flex-direction:column;}.header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.1);gap:12px;}.header-info{display:flex;flex-direction:column;gap:4px;}.header-title{font-size:16px;font-weight:600;}.header-session{font-size:12px;opacity:.75;}.header-version{font-size:11px;opacity:.6;}.header-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}.header-btn{border:0;background:#1d1d1d;color:#fff;padding:8px 12px;border-radius:999px;font-size:12px;cursor:pointer;}.messages{flex:1;overflow-y:auto;padding:20px 18px 12px;display:flex;flex-direction:column;gap:12px;}.message-row{display:flex;}.message-row.user{justify-content:flex-end;}.bubble{max-width:min(480px,78vw);padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5;background:#1d1d1d;color:#fff;word-break:break-word;}.message-row.user .bubble{background:#4b7bff;color:#fff;}.bubble p{margin:0 0 8px;}.bubble p:last-child{margin-bottom:0;}.bubble a{color:#9db6ff;text-decoration:none;}.bubble a:hover{text-decoration:underline;}.bubble code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:12px;background:rgba(255,255,255,.1);padding:2px 4px;border-radius:4px;}.bubble pre{margin:8px 0 0;padding:10px 12px;background:#0f0f0f;border-radius:12px;overflow:auto;}.bubble pre code{display:block;background:transparent;padding:0;font-size:12px;}.message-attachments{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}.message-attachment{width:120px;height:120px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:#111;}.message-attachment img{width:100%;height:100%;object-fit:cover;display:block;}.typing{display:inline-flex;gap:6px;align-items:center;font-size:13px;opacity:.7;}.typing-dot{width:6px;height:6px;border-radius:999px;background:#ccc;animation:blink 1s infinite ease-in-out;}.typing-dot:nth-child(2){animation-delay:.2s;}.typing-dot:nth-child(3){animation-delay:.4s;}@keyframes blink{0%,100%{opacity:.2;}50%{opacity:1;}}.composer{padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;gap:8px;}.composer-inner{display:flex;gap:10px;align-items:flex-end;}.composer textarea{flex:1;border-radius:16px;border:1px solid #2a2a2a;background:#151515;color:#fff;padding:10px 12px;font-size:14px;line-height:1.4;resize:none;outline:none;min-height:42px;max-height:140px;overflow-y:hidden;}.composer textarea:focus{border-color:#4b7bff;}.composer button{border:0;background:#4b7bff;color:#fff;border-radius:14px;padding:10px 16px;font-size:14px;cursor:pointer;}.composer button[disabled]{opacity:.6;cursor:default;}.attach{width:38px;height:38px;padding:0;border-radius:999px;background:#1d1d1d;color:#fff;display:flex;align-items:center;justify-content:center;}.file-input{display:none;}.attachments-tray{display:none;gap:8px;flex-wrap:wrap;}.attachments-tray.open{display:flex;}.attachment{width:64px;height:64px;border-radius:12px;overflow:hidden;position:relative;border:1px solid rgba(255,255,255,.12);background:#111;}.attachment img{width:100%;height:100%;object-fit:cover;display:block;}.attachment-remove{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:999px;border:0;background:rgba(0,0,0,.6);color:#fff;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;}.composer-disabled{display:none;font-size:12px;opacity:.7;}.composer-disabled.open{display:block;}.confirm{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);z-index:2147483650;font-family:system-ui,sans-serif;}.confirm.open{display:flex;}.confirm-dialog{width:min(360px,90vw);background:#111;color:#fff;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:16px;}.confirm-actions{display:flex;justify-content:flex-end;gap:8px;}.confirm-btn{border:0;border-radius:999px;padding:8px 14px;font-size:13px;cursor:pointer;}.confirm-btn.cancel{background:#2a2a2a;color:#fff;}.confirm-btn.delete{background:#ff4b4b;color:#fff;}.confirm-btn.logout{background:#4b7bff;color:#fff;}.auth-overlay{position:fixed;inset:0;background:rgba(10,10,10,.85);display:none;align-items:center;justify-content:center;z-index:2147483649;font-family:system-ui,sans-serif;color:#fff;}.auth-overlay.open{display:flex;}.auth-card{width:min(360px,92vw);background:#111;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:14px;box-shadow:0 16px 40px rgba(0,0,0,.45);}.auth-title{margin:0;font-size:18px;}.auth-text{font-size:13px;opacity:.8;line-height:1.4;}.auth-actions{display:flex;flex-direction:column;gap:10px;}.auth-btn{border:0;border-radius:999px;padding:10px 14px;font-size:13px;cursor:pointer;background:#2a2a2a;color:#fff;}.auth-btn.primary{background:#4b7bff;}.auth-btn.cookie{background:#1d1d1d;}.auth-dismiss{background:transparent;border:0;color:#aaa;font-size:12px;cursor:pointer;}</style><button class="badge" type="button" aria-label="Open Valki Talki">Valki</button><div class="landing" aria-hidden="false"><div class="landing-card"><h1 class="landing-title">Crypto stuck? Explained.</h1><form class="landing-form" autocomplete="off"><input class="landing-input" type="text" placeholder="Ask Valki..." /><button class="landing-send" type="submit">Send</button></form></div></div><div class="overlay" aria-hidden="true"><div class="chat" role="dialog" aria-modal="true"><div class="header"><div class="header-info"><div class="header-title">Valki Talki</div><div class="header-session">Guest 🟠</div><div class="header-version"></div></div><div class="header-actions"><button class="header-btn auth" type="button">Login</button><button class="header-btn delete" type="button">Delete</button><button class="header-btn close" type="button">Close</button></div></div><div class="messages" role="log" aria-live="polite"></div><form class="composer" autocomplete="off"><div class="composer-inner"><button class="attach" type="button" aria-label="Attach image">+</button><textarea class="chat-input" rows="1" placeholder="Type your message..."></textarea><button class="send" type="submit">Send</button></div><input class="file-input" type="file" accept="image/*" multiple /><div class="attachments-tray"></div><div class="composer-disabled">Login required to continue chatting.</div></form></div></div><div class="confirm delete-confirm" aria-hidden="true"><div class="confirm-dialog" role="dialog" aria-modal="true"><div>Delete all chat history?</div><div class="confirm-actions"><button class="confirm-btn cancel" type="button">Cancel</button><button class="confirm-btn delete" type="button">Delete</button></div></div></div><div class="confirm logout-confirm" aria-hidden="true"><div class="confirm-dialog" role="dialog" aria-modal="true"><div>Log out of Valki Talki?</div><div class="confirm-actions"><button class="confirm-btn cancel" type="button">Cancel</button><button class="confirm-btn logout" type="button">Log out</button></div></div></div><div class="auth-overlay" aria-hidden="true"><div class="auth-card" role="dialog" aria-modal="true"><h2 class="auth-title">Log in to continue</h2><div class="auth-text auth-message">Sign in to keep chatting.</div><div class="auth-actions"><button class="auth-btn primary auth-discord" type="button">Continue with Discord</button><button class="auth-btn primary auth-google" type="button">Continue with Google</button><button class="auth-btn cookie cookie-prefs" type="button">See cookie preferences</button></div><button class="auth-dismiss" type="button">Not now</button></div></div>`;
 
 class ValkiTalkiWidget extends HTMLElement {
   constructor() {
@@ -49,6 +52,11 @@ class ValkiTalkiWidget extends HTMLElement {
     this._cookieObserver = null;
     this._cookieWarned = false;
     this._attachments = [];
+    this._flags = null;
+    this._uploadsEnabled = true;
+    this._authEnabled = true;
+    this._markdownEnabled = true;
+    this._cmpObserverEnabled = true;
     this._onKeyDown = (event) => {
       if (event.key !== 'Escape') return;
       if (this._logoutConfirmOpen) {
@@ -82,6 +90,7 @@ class ValkiTalkiWidget extends HTMLElement {
       this._landingSend = shadow.querySelector('.landing-send');
       this._overlay = shadow.querySelector('.overlay');
       this._sessionLabel = shadow.querySelector('.header-session');
+      this._headerVersion = shadow.querySelector('.header-version');
       this._authButton = shadow.querySelector('.header-btn.auth');
       this._messagesEl = shadow.querySelector('.messages');
       this._composerForm = shadow.querySelector('.composer');
@@ -107,6 +116,9 @@ class ValkiTalkiWidget extends HTMLElement {
       this._authGoogle = shadow.querySelector('.auth-google');
       this._authDismiss = shadow.querySelector('.auth-dismiss');
       this._cookiePrefs = shadow.querySelector('.cookie-prefs');
+      this._flags = getFeatureFlags();
+      this._applyFeatureFlags();
+      setDiagState({ open: this._open, version: VALKI_WIDGET_VERSION });
 
       this._badge.addEventListener('click', () => this.open());
       this._landingForm.addEventListener('submit', (event) => {
@@ -146,6 +158,7 @@ class ValkiTalkiWidget extends HTMLElement {
         this._hideLogoutConfirm();
       });
       this._authButton.addEventListener('click', () => {
+        if (!this._authEnabled) return;
         if (this._token) {
           this._showLogoutConfirm();
         } else {
@@ -190,6 +203,8 @@ class ValkiTalkiWidget extends HTMLElement {
     this._chatInput.focus();
     this._scrollToBottom();
     this._notifyParent('open');
+    logEvent({ name: 'open', category: 'ui', status: 'ok' });
+    setDiagState({ open: true });
   }
 
   close() {
@@ -200,6 +215,8 @@ class ValkiTalkiWidget extends HTMLElement {
     this._overlay.setAttribute('aria-hidden', 'true');
     this._unlockBody();
     this._notifyParent('close');
+    logEvent({ name: 'close', category: 'ui', status: 'ok' });
+    setDiagState({ open: false });
   }
 
   _handleChatSubmit() {
@@ -223,6 +240,12 @@ class ValkiTalkiWidget extends HTMLElement {
     }
     const attachments = this._attachments.slice();
     this._clearAttachments();
+    logEvent({
+      name: 'send',
+      category: 'api',
+      status: 'ok',
+      metadata: { length: value.length, attachments: attachments.length }
+    });
     this._messages.push({ role: 'user', text: value, attachments });
     this._saveHistory();
     this._renderMessages();
@@ -238,8 +261,20 @@ class ValkiTalkiWidget extends HTMLElement {
     try {
       const reply = await this._requestReply(value);
       this._messages.push({ role: 'bot', text: reply });
+      logEvent({
+        name: 'reply',
+        category: 'api',
+        status: 'ok',
+        metadata: { length: reply.length }
+      });
     } catch (error) {
       this._messages.push({ role: 'bot', text: this._getFriendlyErrorMessage(error) });
+      logEvent({
+        name: 'reply',
+        category: 'api',
+        status: 'error',
+        metadata: { error: error && error.name ? error.name : 'unknown' }
+      });
     } finally {
       this._setTyping(false);
       this._setSendingState(false);
@@ -259,7 +294,9 @@ class ValkiTalkiWidget extends HTMLElement {
     this._isSending = isSending;
     if (this._landingSend) this._landingSend.disabled = isSending || this._landingInput.disabled;
     if (this._sendButton) this._sendButton.disabled = isSending || this._chatInput.disabled;
-    if (this._attachButton) this._attachButton.disabled = isSending || this._chatInput.disabled;
+    if (this._attachButton) {
+      this._attachButton.disabled = isSending || this._chatInput.disabled || !this._uploadsEnabled;
+    }
   }
 
   _getFriendlyErrorMessage(error) {
@@ -282,6 +319,15 @@ class ValkiTalkiWidget extends HTMLElement {
         message,
         token: this._token,
         clientId: this._getClientId(),
+        onLogError: (status, apiMessage) => {
+          logApiError(status, apiMessage);
+          logEvent({
+            name: 'api_error',
+            category: 'api',
+            status: 'error',
+            metadata: { status, message: apiMessage }
+          });
+        },
         onController: (controller) => {
           this._abortController = controller;
         }
@@ -313,7 +359,7 @@ class ValkiTalkiWidget extends HTMLElement {
       container: this._messagesEl,
       messages: this._messages,
       typing: this._typing,
-      renderMarkdown,
+      renderMarkdown: this._markdownEnabled ? renderMarkdown : null,
       isNearBottom: () => this._isNearBottom(),
       scrollToBottom: () => this._scrollToBottom(),
       updateDeleteVisibility: () => this._updateDeleteVisibility(),
@@ -469,6 +515,7 @@ class ValkiTalkiWidget extends HTMLElement {
   }
 
   async _handleAuthMessageAsync(event) {
+    if (!this._authEnabled) return;
     const origin = new URL(BASE_URL).origin;
     if (event.origin !== origin) return;
     const data = event.data;
@@ -603,8 +650,59 @@ class ValkiTalkiWidget extends HTMLElement {
     } else {
       this._sessionLabel.textContent = this._isLoggedIn() ? 'you 🟢' : 'Guest 🟠';
     }
-    this._authButton.textContent = this._isLoggedIn() ? 'Log out' : 'Login';
+    if (this._authButton) {
+      this._authButton.textContent = this._isLoggedIn() ? 'Log out' : 'Login';
+      this._authButton.style.display = this._authEnabled ? 'inline-flex' : 'none';
+    }
     this._updateDeleteVisibility();
+  }
+
+  _applyFeatureFlags() {
+    this._flags = this._flags || getFeatureFlags();
+    this._uploadsEnabled = !!this._flags.enableUploads;
+    this._authEnabled = !!this._flags.enableAuth;
+    this._markdownEnabled = !!this._flags.enableMarkdown;
+    this._cmpObserverEnabled = !!this._flags.enableCmpObserver;
+
+    if (this._attachButton) {
+      this._attachButton.style.display = this._uploadsEnabled ? 'inline-flex' : 'none';
+    }
+    if (this._fileInput) {
+      this._fileInput.disabled = !this._uploadsEnabled;
+    }
+    if (!this._uploadsEnabled) {
+      this._clearAttachments();
+    }
+
+    if (this._authButton) {
+      this._authButton.style.display = this._authEnabled ? 'inline-flex' : 'none';
+    }
+    if (!this._authEnabled) {
+      this._authHard = false;
+      this._authOpen = false;
+      if (this._authOverlay) {
+        this._authOverlay.classList.remove('open');
+        this._authOverlay.setAttribute('aria-hidden', 'true');
+      }
+      this._setComposerDisabled(false);
+    }
+    this._updateVersionBadge();
+  }
+
+  _updateVersionBadge() {
+    if (!this._headerVersion) return;
+    if (!isDebugEnabled()) {
+      this._headerVersion.textContent = '';
+      this._headerVersion.style.display = 'none';
+      return;
+    }
+    const rawVersion = VALKI_WIDGET_VERSION || '';
+    let display = '';
+    if (rawVersion && rawVersion !== '__VALKI_VERSION__') {
+      display = /^\\d+\\./.test(rawVersion) ? `v${rawVersion.split('-')[0]}` : rawVersion.slice(0, 8);
+    }
+    this._headerVersion.textContent = display;
+    this._headerVersion.style.display = display ? 'block' : 'none';
   }
 
   _updateDeleteVisibility() {
@@ -614,6 +712,7 @@ class ValkiTalkiWidget extends HTMLElement {
   }
 
   _openAuthOverlay({ hard }) {
+    if (!this._authEnabled) return;
     this._authHard = !!hard;
     this._authOpen = true;
     this._authTitle.textContent = this._authHard ? 'Login required' : 'Log in to continue';
@@ -636,22 +735,25 @@ class ValkiTalkiWidget extends HTMLElement {
   }
 
   _openOAuth(provider) {
+    if (!this._authEnabled) return;
     openOAuth(BASE_URL, provider);
   }
 
   _setComposerDisabled(disabled) {
     this._chatInput.disabled = disabled;
     this._sendButton.disabled = disabled;
-    this._attachButton.disabled = disabled;
-    this._fileInput.disabled = disabled;
+    this._attachButton.disabled = disabled || !this._uploadsEnabled;
+    this._fileInput.disabled = disabled || !this._uploadsEnabled;
     this._landingInput.disabled = disabled;
     this._landingSend.disabled = disabled;
-    this._composerDisabled.classList.toggle('open', disabled);
+    this._composerDisabled.classList.toggle('open', disabled && this._authEnabled);
   }
 
   _handleFileSelect() {
+    if (!this._uploadsEnabled) return;
     const files = Array.from(this._fileInput.files || []);
     if (!files.length) return;
+    logEvent({ name: 'upload_select', category: 'upload', status: 'ok', metadata: { count: files.length } });
     handleImageFiles({
       files,
       onLoad: (dataUrl) => {
@@ -661,12 +763,14 @@ class ValkiTalkiWidget extends HTMLElement {
       onError: () => {
         this._messages.push({ role: 'bot', text: 'Upload failed. Try a different image.' });
         this._renderMessages(true);
+        logEvent({ name: 'upload_error', category: 'upload', status: 'error' });
       }
     });
     this._fileInput.value = '';
   }
 
   _renderAttachments() {
+    if (!this._uploadsEnabled) return;
     this._attachmentsTray.innerHTML = '';
     if (!this._attachments.length) {
       this._attachmentsTray.classList.remove('open');
@@ -723,12 +827,14 @@ class ValkiTalkiWidget extends HTMLElement {
   }
 
   _guestHardBlocked() {
+    if (!this._authEnabled) return false;
     if (this._isLoggedIn()) return false;
     const meter = this._getGuestMeter();
     return meter.count >= GUEST_FREE_ROUND_SIZE * GUEST_MAX_ROUNDS;
   }
 
   _maybePromptLoginAfterSend() {
+    if (!this._authEnabled) return;
     if (this._isLoggedIn()) return;
     const meter = this._getGuestMeter();
     const threshold = (meter.roundsShown + 1) * GUEST_FREE_ROUND_SIZE;
@@ -743,6 +849,10 @@ class ValkiTalkiWidget extends HTMLElement {
   }
 
   _applyGuestLimitState() {
+    if (!this._authEnabled) {
+      this._setComposerDisabled(false);
+      return;
+    }
     if (this._guestHardBlocked()) {
       this._openAuthOverlay({ hard: true });
       this._setComposerDisabled(true);
@@ -791,6 +901,7 @@ class ValkiTalkiWidget extends HTMLElement {
   }
 
   _initCookieObserver() {
+    if (!this._cmpObserverEnabled) return;
     if (this._cookieObserver) return;
     this._cookieObserver = createCookieObserver(() => {
       if (!isCookieModalPresent()) return;
