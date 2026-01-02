@@ -12,6 +12,7 @@ const publicDir = path.join(rootDir, 'public');
 const entryFile = path.join(widgetDir, 'src', 'index.js');
 const loaderTemplatePath = path.join(widgetDir, 'valki-talki.js');
 const cssSourcePath = path.join(widgetDir, 'valki-talki.css');
+const packageJsonPath = path.join(rootDir, 'package.json');
 
 const isProd = process.env.NODE_ENV === 'production';
 const sourcemap = !isProd;
@@ -34,10 +35,13 @@ const jsOutput = jsBuild.outputFiles.find((file) => file.path.endsWith('.js'));
 if (!jsOutput) {
   throw new Error('Missing JS bundle output');
 }
+const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'));
 const jsContent = jsOutput.text;
-const jsHash = hashContent(jsContent);
+const versionStamp = packageJson.version || '0.0.0';
+const stampedContent = jsContent.replace(/__VALKI_VERSION__/g, versionStamp);
+const jsHash = hashContent(stampedContent);
 const jsFileName = `valki-talki-main.${jsHash}.js`;
-await writeFile(path.join(publicDir, jsFileName), jsContent);
+await writeFile(path.join(publicDir, jsFileName), stampedContent);
 
 if (sourcemap) {
   const mapOutput = jsBuild.outputFiles.find((file) => file.path.endsWith('.js.map'));

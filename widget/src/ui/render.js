@@ -18,9 +18,13 @@ export const renderMessages = ({
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
     if (message.role === 'bot') {
-      bubble.appendChild(renderMarkdown(message.text || ''));
-    } else {
-      if (message.text) bubble.textContent = message.text;
+      if (typeof renderMarkdown === 'function') {
+        bubble.appendChild(renderMarkdown(message.text || ''));
+      } else if (message.text) {
+        bubble.textContent = message.text;
+      }
+    } else if (message.text) {
+      bubble.textContent = message.text;
     }
     if (message.attachments && message.attachments.length) {
       const attachmentsEl = document.createElement('div');

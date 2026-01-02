@@ -1,10 +1,12 @@
 export const BASE_URL = window.__VALKI_BASE_URL__ || 'https://auth.valki.wiki';
 export const EMBED_MODE = window.__VALKI_EMBED_MODE__ === 'iframe' ? 'iframe' : 'shadow';
 export const MOUNT_SELECTOR = window.__VALKI_MOUNT_SELECTOR__ || '';
+export const VALKI_WIDGET_VERSION = '__VALKI_VERSION__';
 export const HISTORY_KEY = 'valki_history_vNext';
 export const AUTH_TOKEN_KEY = 'valki_auth_token_v1';
 export const GUEST_METER_KEY = 'valki_guest_meter_v1';
 export const CLIENT_ID_KEY = 'valki_client_id';
+export const MIGRATION_KEY = 'valki_migrated_v1';
 export const REQUEST_TIMEOUT_MS = 20000;
 export const FALLBACK_REPLY = 'Thanks for your message.';
 export const GUEST_FREE_ROUND_SIZE = 3;
