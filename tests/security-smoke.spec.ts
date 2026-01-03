@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { maybeRouteBuildAssets } from './helpers/buildAssets';
+import { maybeRouteBuildAssets, getWidgetScriptName } from './helpers/buildAssets';
 
 declare global {
   interface Window {
@@ -24,8 +24,9 @@ const injectBotMessage = async (page, message) => {
 test('security smoke: bot content is escaped and links are hardened', async ({ page }) => {
   const pageUrl = new URL('/test/strict-csp.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
+  const widgetScriptName = await getWidgetScriptName();
   await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
-  await page.addScriptTag({ src: '/widget/valki-talki.js' });
+  await page.addScriptTag({ src: `/widget/${widgetScriptName}` });
   await page.evaluate(() => {
     if (!document.querySelector('valki-talki-widget')) {
       const el = document.createElement('valki-talki-widget');

@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 
 const publicDir = path.join(__dirname, '..', '..', 'public');
 const manifestPath = path.join(publicDir, 'valki-talki-manifest.json');
+const defaultWidgetScript = 'valki-talki.js';
 
 const contentTypeFor = (assetName: string) => {
   if (assetName.endsWith('.css')) return 'text/css';
@@ -56,5 +57,15 @@ export const maybeRouteBuildAssets = async (page: Page) => {
     await page.route(`**/widget/${manifest.css}`, async (route) => {
       await fulfillAsset(route, manifest.css as string);
     });
+  }
+};
+
+export const getWidgetScriptName = async () => {
+  try {
+    const manifestRaw = await fs.readFile(manifestPath, 'utf8');
+    const manifest = JSON.parse(manifestRaw) as { main?: string };
+    return manifest.main || defaultWidgetScript;
+  } catch (error) {
+    return defaultWidgetScript;
   }
 };

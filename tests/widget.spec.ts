@@ -1,14 +1,15 @@
 import { test, expect } from '@playwright/test';
-import { maybeRouteBuildAssets } from './helpers/buildAssets';
+import { maybeRouteBuildAssets, getWidgetScriptName } from './helpers/buildAssets';
 
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
 test('strict csp chat flow', async ({ page }) => {
   const pageUrl = new URL('/test/strict-csp.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
+  const widgetScriptName = await getWidgetScriptName();
 
   await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
-  await page.addScriptTag({ src: '/widget/valki-talki.js' });
+  await page.addScriptTag({ src: `/widget/${widgetScriptName}` });
   await page.evaluate(() => {
     if (!document.querySelector('valki-talki-widget')) {
       const el = document.createElement('valki-talki-widget');
