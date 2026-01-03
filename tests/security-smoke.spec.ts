@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { maybeRouteBuildAssets } from './helpers/buildAssets';
+import { getWidgetScriptName, maybeRouteBuildAssets } from './helpers/buildAssets';
 
 declare global {
   interface Window {
@@ -8,8 +8,6 @@ declare global {
     };
   }
 }
-
-const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
 const injectBotMessage = async (page, message) => {
   await page.evaluate((text) => {
@@ -22,16 +20,24 @@ const injectBotMessage = async (page, message) => {
 };
 
 test('security smoke: bot content is escaped and links are hardened', async ({ page }) => {
-  const pageUrl = new URL('/test/strict-csp.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
-  await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
-  await page.addScriptTag({ src: '/widget/valki-talki.js' });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const scriptName = await getWidgetScriptName();
+  const scriptUrl = `/widget/${scriptName}`;
+  const res = await page.request.get(scriptUrl);
+  if (res.status() !== 200) {
+    throw new Error(`Widget script not reachable: ${scriptUrl} status=${res.status()}`);
+  }
+  await page.addScriptTag({ url: scriptUrl });
+  await page.waitForFunction(() => !!window.customElements?.get('valki-talki-widget'), null, {
+    timeout: 10000,
+  });
   await page.evaluate(() => {
     if (!document.querySelector('valki-talki-widget')) {
-      const el = document.createElement('valki-talki-widget');
-      document.body.appendChild(el);
+      document.body.appendChild(document.createElement('valki-talki-widget'));
     }
   });
+  await expect(page.locator('valki-talki-widget')).toHaveCount(1);
 
   const hookEnabled = await page.evaluate(() => Boolean(window.__VALKI_TEST_HOOKS__?.securitySmoke));
   if (!hookEnabled) {
