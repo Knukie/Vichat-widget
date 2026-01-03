@@ -24,7 +24,8 @@ const injectBotMessage = async (page, message) => {
 test('security smoke: bot content is escaped and links are hardened', async ({ page }) => {
   const pageUrl = new URL('/test/strict-csp.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
-  await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
+  await page.addScriptTag({ src: '/widget/valki-talki.js' });
   await page.evaluate(() => {
     if (!document.querySelector('valki-talki-widget')) {
       const el = document.createElement('valki-talki-widget');
