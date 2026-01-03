@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { getWidgetScriptName, maybeRouteBuildAssets } from './helpers/buildAssets';
+import { maybeRouteBuildAssets } from './helpers/buildAssets';
 
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
@@ -8,18 +8,7 @@ test('strict csp chat flow', async ({ page }) => {
   await maybeRouteBuildAssets(page);
 
   await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
-
-  const widgetScriptName = await getWidgetScriptName();
-  const scriptUrl = `/widget/${widgetScriptName}`;
-
-  // Ensure the script is actually reachable (and routed) before continuing.
-  await Promise.all([
-    page.waitForResponse((r) => r.url().includes(scriptUrl) && r.status() === 200, { timeout: 10_000 }),
-    page.addScriptTag({ url: scriptUrl })
-  ]);
-
-  // Wait for custom element registration before mounting.
-  await page.waitForFunction(() => !!window.customElements?.get('valki-talki-widget'), null, { timeout: 10_000 });
+  await page.addScriptTag({ src: '/widget/valki-talki.js' });
 
   await page.evaluate(() => {
     if (!document.querySelector('valki-talki-widget')) {

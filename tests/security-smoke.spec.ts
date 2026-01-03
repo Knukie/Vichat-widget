@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { getWidgetScriptName, maybeRouteBuildAssets } from './helpers/buildAssets';
+import { maybeRouteBuildAssets } from './helpers/buildAssets';
 
 declare global {
   interface Window {
@@ -28,18 +28,7 @@ test('security smoke: bot content is escaped and links are hardened', async ({ p
 
   await maybeRouteBuildAssets(page);
   await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
-
-  const widgetScriptName = await getWidgetScriptName();
-  const scriptUrl = `/widget/${widgetScriptName}`;
-
-  // Ensure the script is actually reachable (and routed) before continuing.
-  await Promise.all([
-    page.waitForResponse((r) => r.url().includes(scriptUrl) && r.status() === 200, { timeout: 10_000 }),
-    page.addScriptTag({ url: scriptUrl })
-  ]);
-
-  // Wait for custom element registration.
-  await page.waitForFunction(() => !!window.customElements?.get('valki-talki-widget'), null, { timeout: 10_000 });
+  await page.addScriptTag({ src: '/widget/valki-talki.js' });
 
   // Mount widget (only if missing).
   await page.evaluate(() => {
