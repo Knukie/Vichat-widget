@@ -8,7 +8,7 @@ import { maybeRouteBuildAssets } from './helpers/buildAssets';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const ORIGIN = 'http://localhost';
+const ORIGIN = process.env.BASE_URL || 'http://localhost:3000';
 
 declare global {
   interface Window {
@@ -46,7 +46,7 @@ test('security smoke: bot content is escaped and links are hardened', async ({ p
 
   await page.goto(`${ORIGIN}/test/strict-csp.html`, { waitUntil: 'domcontentloaded' });
 
-  await page.addScriptTag({ src: '/widget/valki-talki.js' });
+  await page.addScriptTag({ url: `${ORIGIN}/widget/valki-talki.js` });
 
   await page.evaluate(() => {
     if (!document.querySelector('valki-talki-widget')) {
