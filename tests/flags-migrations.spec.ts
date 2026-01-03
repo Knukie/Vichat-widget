@@ -31,7 +31,7 @@ test('step9 migrates legacy storage safely', async ({ page }) => {
     localStorage.removeItem('valki_migrated_v1');
   });
 
-  await page.reload({ waitUntil: 'networkidle' });
+  await page.reload({ waitUntil: 'domcontentloaded' });
 
   const widget = page.locator('valki-talki-widget');
   await expect(widget).toHaveCount(1);
@@ -42,9 +42,11 @@ test('step9 migrates legacy storage safely', async ({ page }) => {
     const clientId = localStorage.getItem('valki_client_id');
     let hasUnsafe = false;
     let parsedLength = 0;
+
     if (historyRaw) {
       const parsed = JSON.parse(historyRaw);
       parsedLength = Array.isArray(parsed) ? parsed.length : 0;
+
       if (Array.isArray(parsed)) {
         parsed.forEach((item) => {
           const attachments = Array.isArray(item.attachments) ? item.attachments : [];
@@ -57,6 +59,7 @@ test('step9 migrates legacy storage safely', async ({ page }) => {
         });
       }
     }
+
     return { marker, clientId, parsedLength, hasUnsafe };
   });
 
@@ -75,14 +78,16 @@ test('step9 flags disable uploads and auth UI', async ({ page }) => {
       enableAuth: false
     };
   });
+
   const pageUrl = new URL('/test/step9.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
-  await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
 
   const widget = page.locator('valki-talki-widget');
   await expect(widget).toHaveCount(1);
 
   const badge = widget.locator('>>> .badge');
+  await expect(badge).toBeVisible();
   await badge.click();
 
   const attachButton = widget.locator('>>> .attach');
