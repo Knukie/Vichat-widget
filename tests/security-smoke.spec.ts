@@ -16,7 +16,7 @@ declare global {
   }
 }
 
-async function routeTestHtml(page: any, urlPath: string, filePath: string) {
+async function routeHtml(page: any, urlPath: string, filePath: string) {
   const html = await fs.readFile(filePath, 'utf8');
   await page.route(`**${urlPath}`, async (route: any) => {
     await route.fulfill({
@@ -40,10 +40,9 @@ async function injectBotMessage(page: any, message: string) {
 }
 
 test('security smoke: bot content is escaped and links are hardened', async ({ page }) => {
-  await maybeRouteBuildAssets(page);
-
   const strictCspHtmlPath = path.join(__dirname, '..', 'public', 'test', 'strict-csp.html');
-  await routeTestHtml(page, '/test/strict-csp.html', strictCspHtmlPath);
+  await routeHtml(page, '/test/strict-csp.html', strictCspHtmlPath);
+  await maybeRouteBuildAssets(page);
 
   await page.goto(`${ORIGIN}/test/strict-csp.html`, { waitUntil: 'domcontentloaded' });
 
