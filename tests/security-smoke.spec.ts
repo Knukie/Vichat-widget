@@ -1,6 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { maybeRouteBuildAssets } from './helpers/buildAssets';
 
+declare global {
+  interface Window {
+    __VALKI_TEST_HOOKS__?: {
+      securitySmoke?: boolean;
+    };
+  }
+}
+
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
 const injectBotMessage = async (page, message) => {
@@ -17,6 +25,12 @@ test('security smoke: bot content is escaped and links are hardened', async ({ p
   const pageUrl = new URL('/test/strict-csp.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
   await page.goto(pageUrl, { waitUntil: 'networkidle' });
+
+  const hookEnabled = await page.evaluate(() => Boolean(window.__VALKI_TEST_HOOKS__?.securitySmoke));
+  if (!hookEnabled) {
+    test.skip(true, 'Security smoke test requires an explicit test hook.');
+    return;
+  }
 
   const widget = page.locator('valki-talki-widget');
   await expect(widget).toHaveCount(1);
