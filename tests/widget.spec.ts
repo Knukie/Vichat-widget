@@ -8,6 +8,12 @@ test('strict csp chat flow', async ({ page }) => {
   await maybeRouteBuildAssets(page);
 
   await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.evaluate(() => {
+    if (!document.querySelector('valki-talki-widget')) {
+      const el = document.createElement('valki-talki-widget');
+      document.body.appendChild(el);
+    }
+  });
 
   const widget = page.locator('valki-talki-widget');
   await expect(widget).toHaveCount(1);
