@@ -84,7 +84,51 @@
     root.setAttribute('data-valki-root', '1');
     (document.body || document.documentElement).appendChild(root);
   };
+  const parseBoolean = (value) => {
+    if (value === true || value === false) return value;
+    if (typeof value !== 'string') return undefined;
+    const normalized = value.trim().toLowerCase();
+    if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+    if (['false', '0', 'no', 'off'].includes(normalized)) return false;
+    return undefined;
+  };
+  const hasValue = (value) => value !== undefined && value !== null && value !== '';
+  const isUnset = (value) => value === undefined || value === null || value === '';
+  const setGlobalIfUnset = (key, value) => {
+    if (!hasValue(value)) return;
+    if (isUnset(window[key])) {
+      window[key] = value;
+    }
+  };
+  const readScriptConfig = (script) => {
+    if (!script) return;
+    const getAttr = (name) => script.getAttribute(`data-valki-${name}`);
+    const baseUrl = getAttr('base-url');
+    const embedMode = getAttr('embed-mode');
+    const mountSelector = getAttr('mount-selector');
+    const debug = getAttr('debug');
+    const flagsRaw = getAttr('flags');
+    setGlobalIfUnset('__VALKI_BASE_URL__', typeof baseUrl === 'string' ? baseUrl.trim() : '');
+    if (embedMode === 'iframe' || embedMode === 'shadow') {
+      setGlobalIfUnset('__VALKI_EMBED_MODE__', embedMode);
+    }
+    setGlobalIfUnset('__VALKI_MOUNT_SELECTOR__', typeof mountSelector === 'string' ? mountSelector.trim() : '');
+    const debugValue = parseBoolean(debug);
+    if (typeof debugValue === 'boolean') {
+      setGlobalIfUnset('__VALKI_DEBUG__', debugValue);
+    }
+    if (typeof flagsRaw === 'string' && flagsRaw.trim()) {
+      try {
+        const parsed = JSON.parse(flagsRaw);
+        if (parsed && typeof parsed === 'object') {
+          setGlobalIfUnset('__VALKI_FLAGS__', parsed);
+        }
+      } catch (error) {
+      }
+    }
+  };
   const scriptEl = findLoaderScript();
+  readScriptConfig(scriptEl);
   const baseUrl = resolveBaseUrl(scriptEl);
   const cssFile = (scriptEl && scriptEl.getAttribute('data-valki-css-href')) || 'valki-talki.7ac16ae8.css';
   const mainFile = (scriptEl && scriptEl.getAttribute('data-valki-main-src')) || 'valki-talki-main.4ae6efe7.js';

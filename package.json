@@ -10,7 +10,9 @@
   "scripts": {
     "start": "node server.js",
     "build": "node build/esbuild.mjs && npm run check:widget",
-    "check:widget": "node build/check-widget-placeholders.mjs"
+    "check:widget": "node build/check-widget-placeholders.mjs",
+    "test:e2e": "npx playwright test tests/widget.spec.ts tests/attachments.spec.ts tests/flags-migrations.spec.ts tests/step6.spec.ts",
+    "test:embed": "npx playwright test tests/embed-compat.spec.ts"
   },
   "dependencies": {
     "express": "^4.18.2"
