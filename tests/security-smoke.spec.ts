@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { getWidgetScriptName, maybeRouteBuildAssets } from './helpers/buildAssets';
 
 declare global {
@@ -11,11 +11,13 @@ declare global {
 
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
-const injectBotMessage = async (page, message) => {
+const injectBotMessage = async (page: Page, message: string) => {
   await page.evaluate((text) => {
     const widget = document.querySelector('valki-talki-widget');
     if (!widget) throw new Error('Widget not found');
     const widgetAny = widget as any;
+
+    // Test-only injection: relies on explicit test hook being enabled in the page.
     widgetAny._messages = [{ role: 'bot', text }];
     widgetAny._renderMessages(true);
   }, message);
@@ -23,14 +25,26 @@ const injectBotMessage = async (page, message) => {
 
 test('security smoke: bot content is escaped and links are hardened', async ({ page }) => {
   const pageUrl = new URL('/test/strict-csp.html', baseUrl).toString();
+
   await maybeRouteBuildAssets(page);
   await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
+
   const widgetScriptName = await getWidgetScriptName();
-  await page.addScriptTag({ src: `/widget/${widgetScriptName}` });
+  const scriptUrl = `/widget/${widgetScriptName}`;
+
+  // Ensure the script is actually reachable (and routed) before continuing.
+  await Promise.all([
+    page.waitForResponse((r) => r.url().includes(scriptUrl) && r.status() === 200, { timeout: 10_000 }),
+    page.addScriptTag({ url: scriptUrl })
+  ]);
+
+  // Wait for custom element registration.
+  await page.waitForFunction(() => !!window.customElements?.get('valki-talki-widget'), null, { timeout: 10_000 });
+
+  // Mount widget (only if missing).
   await page.evaluate(() => {
     if (!document.querySelector('valki-talki-widget')) {
-      const el = document.createElement('valki-talki-widget');
-      document.body.appendChild(el);
+      document.body.appendChild(document.createElement('valki-talki-widget'));
     }
   });
 
@@ -43,10 +57,7 @@ test('security smoke: bot content is escaped and links are hardened', async ({ p
   const widget = page.locator('valki-talki-widget');
   await expect(widget).toHaveCount(1);
 
-  await injectBotMessage(
-    page,
-    '<img src=x onerror=alert(1)> [bad](javascript:alert(1)) https://example.com'
-  );
+  await injectBotMessage(page, '<img src=x onerror=alert(1)> [bad](javascript:alert(1)) https://example.com');
 
   const bubble = widget.locator('>>> .message-row.bot .bubble');
   await expect(bubble).toContainText('<img src=x onerror=alert(1)>');
