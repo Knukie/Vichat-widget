@@ -31,7 +31,9 @@ jobs:
         run: npm run test --if-present
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        uses: microsoft/playwright-github-action@v1
+        with:
+          browsers: chromium
 
       - name: E2E tests
         run: npm run test:e2e
