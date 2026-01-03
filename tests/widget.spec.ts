@@ -11,8 +11,29 @@ const __dirname = path.dirname(__filename);
 // We do NOT rely on a real server in CI. We fulfill the HTML via route().
 const ORIGIN = 'http://localhost';
 
-async function routeHtml(page: any, urlPath: string, filePath: string) {
-  const html = await fs.readFile(filePath, 'utf8');
+async function routeHtml(page: any, urlPath: string, candidatePaths: string[]) {
+  const errors: string[] = [];
+  let html: string | null = null;
+  let resolvedPath: string | null = null;
+
+  for (const candidate of candidatePaths) {
+    try {
+      html = await fs.readFile(candidate, 'utf8');
+      resolvedPath = candidate;
+      break;
+    } catch (error: any) {
+      errors.push(`${candidate} (${error?.code ?? 'unknown error'})`);
+    }
+  }
+
+  if (!html || !resolvedPath) {
+    throw new Error(
+      `Unable to locate HTML fixture for ${urlPath}. Tried:\n${errors
+        .map((line) => `- ${line}`)
+        .join('\n')}`
+    );
+  }
+
   await page.route(`**${urlPath}`, async (route: any) => {
     await route.fulfill({
       status: 200,
@@ -23,8 +44,14 @@ async function routeHtml(page: any, urlPath: string, filePath: string) {
 }
 
 test('strict csp chat flow', async ({ page }) => {
-  const strictCspHtmlPath = path.join(__dirname, '..', 'public', 'test', 'strict-csp.html');
-  await routeHtml(page, '/test/strict-csp.html', strictCspHtmlPath);
+  const strictCspHtmlCandidates = [
+    path.join(__dirname, '..', 'public', 'test', 'strict-csp.html'),
+    path.join(__dirname, '..', 'public', 'strict-csp.html'),
+    path.join(__dirname, '..', 'test', 'strict-csp.html'),
+    path.join(__dirname, '..', 'test', 'pages', 'strict-csp.html'),
+    path.join(__dirname, '..', 'public', 'tests', 'strict-csp.html')
+  ];
+  await routeHtml(page, '/test/strict-csp.html', strictCspHtmlCandidates);
   await maybeRouteBuildAssets(page);
 
   await page.goto(`${ORIGIN}/test/strict-csp.html`, { waitUntil: 'domcontentloaded' });
