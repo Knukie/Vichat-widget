@@ -1,16 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { maybeRouteBuildAssets } from './helpers/buildAssets';
 
-const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-
 test('nl locale strings', async ({ page }) => {
   await page.addInitScript(() => {
     window.__VALKI_LOCALE__ = 'nl';
   });
-  const pageUrl = new URL('/test/step9.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
 
-  await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.goto('/test/step9.html', { waitUntil: 'networkidle' });
 
   const widget = page.locator('valki-talki-widget');
   const badge = widget.locator('>>> .badge');
@@ -27,10 +24,9 @@ test('ar locale sets rtl', async ({ page }) => {
   await page.addInitScript(() => {
     window.__VALKI_LOCALE__ = 'ar';
   });
-  const pageUrl = new URL('/test/step9.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
 
-  await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.goto('/test/step9.html', { waitUntil: 'networkidle' });
 
   const widget = page.locator('valki-talki-widget');
   const root = widget.locator('>>> .root');

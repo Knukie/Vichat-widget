@@ -3,8 +3,6 @@ import path from 'path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import { maybeRouteBuildAssets } from './helpers/buildAssets';
-
-const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const shellPath = path.join(__dirname, '..', 'public', 'shell.html');
@@ -62,40 +60,36 @@ const openIframeWidget = async (frameLocator) => {
 };
 
 test('embed host 1 strict csp', async ({ page }) => {
-  const pageUrl = new URL('/test/hosts/host1-strict-csp.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
   await maybeRouteShell(page);
-  await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.goto('/test/hosts/host1-strict-csp.html', { waitUntil: 'networkidle' });
 
   await openShadowWidget(page);
   await page.screenshot({ path: 'embed-host1.png', fullPage: true });
 });
 
 test('embed host 2 css hostile', async ({ page }) => {
-  const pageUrl = new URL('/test/hosts/host2-css-hostile.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
   await maybeRouteShell(page);
-  await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.goto('/test/hosts/host2-css-hostile.html', { waitUntil: 'networkidle' });
 
   await openShadowWidget(page);
   await page.screenshot({ path: 'embed-host2.png', fullPage: true });
 });
 
 test('embed host 3 z-index war', async ({ page }) => {
-  const pageUrl = new URL('/test/hosts/host3-zindex-war.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
   await maybeRouteShell(page);
-  await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.goto('/test/hosts/host3-zindex-war.html', { waitUntil: 'networkidle' });
 
   await openShadowWidget(page);
   await page.screenshot({ path: 'embed-host3.png', fullPage: true });
 });
 
 test('embed host 4 iframe sandbox', async ({ page }) => {
-  const pageUrl = new URL('/test/hosts/host4-iframe-sandbox.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
   await maybeRouteShell(page);
-  await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.goto('/test/hosts/host4-iframe-sandbox.html', { waitUntil: 'networkidle' });
 
   const sandboxFrame = page.frameLocator('#sandbox-frame');
   const widgetFrame = sandboxFrame.frameLocator('iframe[data-valki-embed="iframe"]');

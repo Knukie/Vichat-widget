@@ -9,8 +9,6 @@ declare global {
   }
 }
 
-const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-
 const injectBotMessage = async (page, message) => {
   await page.evaluate((text) => {
     const widget = document.querySelector('valki-talki-widget');
@@ -22,9 +20,8 @@ const injectBotMessage = async (page, message) => {
 };
 
 test('security smoke: bot content is escaped and links are hardened', async ({ page }) => {
-  const pageUrl = new URL('/test/strict-csp.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
-  await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.goto('/test/strict-csp.html', { waitUntil: 'networkidle' });
 
   const hookEnabled = await page.evaluate(() => Boolean(window.__VALKI_TEST_HOOKS__?.securitySmoke));
   if (!hookEnabled) {

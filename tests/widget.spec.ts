@@ -1,13 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { maybeRouteBuildAssets } from './helpers/buildAssets';
 
-const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-
 test('strict csp chat flow', async ({ page }) => {
-  const pageUrl = new URL('/test/strict-csp.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
 
-  await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.goto('/test/strict-csp.html', { waitUntil: 'networkidle' });
 
   const widget = page.locator('valki-talki-widget');
   await expect(widget).toHaveCount(1);
