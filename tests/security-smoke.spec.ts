@@ -25,6 +25,12 @@ test('security smoke: bot content is escaped and links are hardened', async ({ p
   const pageUrl = new URL('/test/strict-csp.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
   await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.evaluate(() => {
+    if (!document.querySelector('valki-talki-widget')) {
+      const el = document.createElement('valki-talki-widget');
+      document.body.appendChild(el);
+    }
+  });
 
   const hookEnabled = await page.evaluate(() => Boolean(window.__VALKI_TEST_HOOKS__?.securitySmoke));
   if (!hookEnabled) {
