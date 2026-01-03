@@ -12,13 +12,14 @@
     "build": "node build/esbuild.mjs && npm run check:widget",
     "check:widget": "node build/check-widget-placeholders.mjs",
     "ci": "npm ci",
-    "test:e2e": "npx playwright test tests/widget.spec.ts tests/attachments.spec.ts tests/flags-migrations.spec.ts tests/step6.spec.ts tests/security-smoke.spec.ts",
+    "test:e2e": "npx playwright test",
     "test:embed": "npx playwright test tests/embed-compat.spec.ts"
   },
   "dependencies": {
     "express": "^4.18.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.42.1",
     "esbuild": "file:build/esbuild-shim"
   }
 }
