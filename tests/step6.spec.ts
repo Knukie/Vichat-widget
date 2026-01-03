@@ -2,15 +2,12 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'node:url';
 import { maybeRouteBuildAssets } from './helpers/buildAssets';
-
-const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 test('step6 overlay open/close with escape', async ({ page }) => {
-  const pageUrl = new URL('/test/step6.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
-  await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.goto('/test/step6.html', { waitUntil: 'networkidle' });
 
   const widget = page.locator('valki-talki-widget');
   await expect(widget).toHaveCount(1);
@@ -29,9 +26,8 @@ test('step6 overlay open/close with escape', async ({ page }) => {
 });
 
 test('step6 text chat flow', async ({ page }) => {
-  const pageUrl = new URL('/test/step6.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
-  await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.goto('/test/step6.html', { waitUntil: 'networkidle' });
 
   const widget = page.locator('valki-talki-widget');
   const badge = widget.locator('>>> .badge');
@@ -49,10 +45,9 @@ test('step6 text chat flow', async ({ page }) => {
 });
 
 test('step6 attachments flow', async ({ page }) => {
-  const pageUrl = new URL('/test/step6.html', baseUrl).toString();
   const samplePath = path.join(__dirname, '../test/assets/sample.png');
   await maybeRouteBuildAssets(page);
-  await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.goto('/test/step6.html', { waitUntil: 'networkidle' });
 
   const widget = page.locator('valki-talki-widget');
   const badge = widget.locator('>>> .badge');
@@ -77,9 +72,8 @@ test('step6 guest hard block disables composer', async ({ page }) => {
   await page.addInitScript(() => {
     window.__VALKI_TEST_GUEST_COUNT__ = 999;
   });
-  const pageUrl = new URL('/test/step6.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
-  await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.goto('/test/step6.html', { waitUntil: 'networkidle' });
 
   const widget = page.locator('valki-talki-widget');
   const badge = widget.locator('>>> .badge');

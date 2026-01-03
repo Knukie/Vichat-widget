@@ -1,12 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { maybeRouteBuildAssets } from './helpers/buildAssets';
 
-const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-
 test('step9 migrates legacy storage safely', async ({ page }) => {
-  const pageUrl = new URL('/test/step9.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
-  await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
+  await page.goto('/test/step9.html', { waitUntil: 'domcontentloaded' });
 
   await page.evaluate(() => {
     const legacy = [
@@ -75,9 +72,8 @@ test('step9 flags disable uploads and auth UI', async ({ page }) => {
       enableAuth: false
     };
   });
-  const pageUrl = new URL('/test/step9.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
-  await page.goto(pageUrl, { waitUntil: 'networkidle' });
+  await page.goto('/test/step9.html', { waitUntil: 'networkidle' });
 
   const widget = page.locator('valki-talki-widget');
   await expect(widget).toHaveCount(1);
