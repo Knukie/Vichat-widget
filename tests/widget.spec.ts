@@ -8,12 +8,22 @@ test('strict csp chat flow', async ({ page }) => {
   await maybeRouteBuildAssets(page);
 
   await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
+
   const widgetScriptName = await getWidgetScriptName();
-  await page.addScriptTag({ src: `/widget/${widgetScriptName}` });
+  const scriptUrl = `/widget/${widgetScriptName}`;
+
+  // Ensure the script is actually reachable (and routed) before continuing.
+  await Promise.all([
+    page.waitForResponse((r) => r.url().includes(scriptUrl) && r.status() === 200, { timeout: 10_000 }),
+    page.addScriptTag({ url: scriptUrl })
+  ]);
+
+  // Wait for custom element registration before mounting.
+  await page.waitForFunction(() => !!window.customElements?.get('valki-talki-widget'), null, { timeout: 10_000 });
+
   await page.evaluate(() => {
     if (!document.querySelector('valki-talki-widget')) {
-      const el = document.createElement('valki-talki-widget');
-      document.body.appendChild(el);
+      document.body.appendChild(document.createElement('valki-talki-widget'));
     }
   });
 
@@ -30,7 +40,7 @@ test('strict csp chat flow', async ({ page }) => {
   await input.press('Enter');
 
   const botMessages = widget.locator('>>> .message-row.bot .bubble').filter({ hasText: /\S+/ });
-  await expect(botMessages.first()).toBeVisible({ timeout: 30000 });
+  await expect(botMessages.first()).toBeVisible({ timeout: 30_000 });
 
   await page.screenshot({ path: 'csp-chat-working.png', fullPage: true });
 });
