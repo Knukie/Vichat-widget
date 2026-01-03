@@ -1,6 +1,26 @@
-export const BASE_URL = window.__VALKI_BASE_URL__ || 'https://auth.valki.wiki';
-export const EMBED_MODE = window.__VALKI_EMBED_MODE__ === 'iframe' ? 'iframe' : 'shadow';
-export const MOUNT_SELECTOR = window.__VALKI_MOUNT_SELECTOR__ || '';
+const readScriptConfig = () => {
+  if (typeof document === 'undefined') return {};
+  const script = document.querySelector('script[src*="valki-talki.js"]');
+  if (!script) return {};
+  const getAttr = (name) => script.getAttribute(`data-valki-${name}`);
+  return {
+    baseUrl: getAttr('base-url'),
+    embedMode: getAttr('embed-mode'),
+    mountSelector: getAttr('mount-selector')
+  };
+};
+
+const scriptConfig = readScriptConfig();
+// Config precedence: data attributes on loader script -> window globals -> defaults.
+const readValue = (scriptValue, globalValue, fallback) => {
+  if (typeof scriptValue === 'string' && scriptValue.trim()) return scriptValue.trim();
+  if (typeof globalValue === 'string' && globalValue.trim()) return globalValue.trim();
+  return fallback;
+};
+export const BASE_URL = readValue(scriptConfig.baseUrl, typeof window !== 'undefined' ? window.__VALKI_BASE_URL__ : '', 'https://auth.valki.wiki');
+const embedModeValue = readValue(scriptConfig.embedMode, typeof window !== 'undefined' ? window.__VALKI_EMBED_MODE__ : '', 'shadow');
+export const EMBED_MODE = embedModeValue === 'iframe' ? 'iframe' : 'shadow';
+export const MOUNT_SELECTOR = readValue(scriptConfig.mountSelector, typeof window !== 'undefined' ? window.__VALKI_MOUNT_SELECTOR__ : '', '');
 export const VALKI_WIDGET_VERSION = '__VALKI_VERSION__';
 export const HISTORY_KEY = 'valki_history_vNext';
 export const AUTH_TOKEN_KEY = 'valki_auth_token_v1';
