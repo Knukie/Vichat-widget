@@ -12,7 +12,9 @@
     "build": "node build/esbuild.mjs && npm run check:widget",
     "check:widget": "node build/check-widget-placeholders.mjs",
     "ci": "npm ci",
-    "test:e2e": "npx playwright test",
+    "test:e2e": "npm run test:e2e:smoke",
+    "test:e2e:smoke": "npx playwright test tests/widget.spec.ts tests/security-smoke.spec.ts",
+    "test:e2e:full": "npx playwright test",
     "test:embed": "npx playwright test tests/embed-compat.spec.ts"
   },
   "dependencies": {
