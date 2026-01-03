@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { maybeRouteBuildAssets } from './helpers/buildAssets';
+import { getWidgetScriptName, maybeRouteBuildAssets } from './helpers/buildAssets';
 
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
@@ -8,7 +8,8 @@ test('strict csp chat flow', async ({ page }) => {
   await maybeRouteBuildAssets(page);
 
   await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
-  await page.addScriptTag({ src: '/widget/valki-talki.js' });
+  const widgetScriptName = await getWidgetScriptName();
+  await page.addScriptTag({ src: `/widget/${widgetScriptName}` });
   await page.evaluate(() => {
     if (!document.querySelector('valki-talki-widget')) {
       const el = document.createElement('valki-talki-widget');
