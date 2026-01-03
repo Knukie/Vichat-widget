@@ -1,32 +1,35 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'node:url';
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page, type FrameLocator } from '@playwright/test';
 import { maybeRouteBuildAssets } from './helpers/buildAssets';
 
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+
+// ESM-safe __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const shellPath = path.join(__dirname, '..', 'public', 'shell.html');
 
-const maybeRouteShell = async (page) => {
+// tests/ -> repo root is one level up, then /public/shell.html
+const publicDir = path.join(__dirname, '..', 'public');
+const shellPath = path.join(publicDir, 'shell.html');
+
+const maybeRouteShell = async (page: Page) => {
   await page.route('**/public/shell.html*', async (route) => {
     try {
       const body = await fs.readFile(shellPath);
       await route.fulfill({
         status: 200,
         body,
-        headers: {
-          'content-type': 'text/html'
-        }
+        headers: { 'content-type': 'text/html' }
       });
-    } catch (error) {
+    } catch {
       await route.continue();
     }
   });
 };
 
-const openShadowWidget = async (page) => {
+const openShadowWidget = async (page: Page) => {
   const widget = page.locator('valki-talki-widget');
   await expect(widget).toHaveCount(1);
 
@@ -39,13 +42,13 @@ const openShadowWidget = async (page) => {
   await input.fill('Embed compatibility test');
   await input.press('Enter');
 
-  const userMessage = widget
-    .locator('>>> .message-row.user .bubble')
-    .filter({ hasText: 'Embed compatibility test' });
+  const userMessage = widget.locator('>>> .message-row.user .bubble').filter({
+    hasText: 'Embed compatibility test'
+  });
   await expect(userMessage).toBeVisible();
 };
 
-const openIframeWidget = async (frameLocator) => {
+const openIframeWidget = async (frameLocator: FrameLocator) => {
   const badge = frameLocator.locator('.badge');
   await expect(badge).toBeVisible();
   await badge.click();
@@ -55,9 +58,9 @@ const openIframeWidget = async (frameLocator) => {
   await input.fill('Embed compatibility test');
   await input.press('Enter');
 
-  const userMessage = frameLocator
-    .locator('.message-row.user .bubble')
-    .filter({ hasText: 'Embed compatibility test' });
+  const userMessage = frameLocator.locator('.message-row.user .bubble').filter({
+    hasText: 'Embed compatibility test'
+  });
   await expect(userMessage).toBeVisible();
 };
 
