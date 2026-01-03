@@ -9,13 +9,19 @@
   },
   "scripts": {
     "start": "node server.js",
+
+    "ci": "npm ci",
+
     "build": "node build/esbuild.mjs && npm run check:widget",
     "check:widget": "node build/check-widget-placeholders.mjs",
-    "ci": "npm ci",
+
     "test:e2e": "npm run test:e2e:smoke",
-    "test:e2e:smoke": "npx playwright test tests/widget.spec.ts tests/security-smoke.spec.ts",
-    "test:e2e:full": "npx playwright test",
-    "test:embed": "npx playwright test tests/embed-compat.spec.ts"
+
+    "test:e2e:smoke": "npx playwright test --reporter=line tests/widget.spec.ts tests/security-smoke.spec.ts",
+
+    "test:e2e:full": "npx playwright test --reporter=line",
+
+    "test:embed": "npx playwright test --reporter=line tests/embed-compat.spec.ts"
   },
   "dependencies": {
     "express": "^4.18.2"
