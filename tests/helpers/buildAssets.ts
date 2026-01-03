@@ -1,8 +1,12 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'node:url';
 import type { Page, Route } from '@playwright/test';
 
 const useBuild = process.env.VALKI_USE_BUILD === '1' || process.env.VALKI_USE_BUILD === undefined;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const publicDir = path.join(__dirname, '..', '..', 'public');
 const manifestPath = path.join(publicDir, 'valki-talki-manifest.json');
