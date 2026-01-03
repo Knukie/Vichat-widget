@@ -1,9 +1,12 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import { maybeRouteBuildAssets } from './helpers/buildAssets';
 
 const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const shellPath = path.join(__dirname, '..', 'public', 'shell.html');
 
 const maybeRouteShell = async (page) => {
