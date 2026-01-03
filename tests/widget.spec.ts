@@ -8,9 +8,9 @@ import { maybeRouteBuildAssets } from './helpers/buildAssets';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// We do NOT rely on a real server in CI. We fulfill the HTML via route().
-const ORIGIN = 'http://localhost';
+const ORIGIN = process.env.BASE_URL || 'http://localhost:3000';
 
+// We do NOT rely on a real server in CI. We fulfill the HTML via route().
 async function routeHtml(page: any, urlPath: string, filePath: string) {
   const html = await fs.readFile(filePath, 'utf8');
   await page.route(`**${urlPath}`, async (route: any) => {
@@ -30,7 +30,7 @@ test('strict csp chat flow', async ({ page }) => {
   await page.goto(`${ORIGIN}/test/strict-csp.html`, { waitUntil: 'domcontentloaded' });
 
   // Deterministic script load
-  await page.addScriptTag({ src: '/widget/valki-talki.js' });
+  await page.addScriptTag({ url: `${ORIGIN}/widget/valki-talki.js` });
 
   // Ensure widget element exists
   await page.evaluate(() => {
