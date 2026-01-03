@@ -1,13 +1,14 @@
-name: CI
+name: E2E Full
 
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * *"
 
 jobs:
-  build-test:
+  e2e-full:
     runs-on: ubuntu-22.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,19 +25,13 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Lint (if present)
-        run: npm run lint --if-present
-
-      - name: Unit tests (if present)
-        run: npm run test --if-present
-
       - name: Install Playwright browsers
         uses: microsoft/playwright-github-action@v1
         with:
           browsers: chromium
 
-      - name: E2E tests (smoke)
-        run: npm run test:e2e:smoke
+      - name: E2E tests (full)
+        run: npm run test:e2e:full
 
       - name: Upload Playwright artifacts
         if: failure()
