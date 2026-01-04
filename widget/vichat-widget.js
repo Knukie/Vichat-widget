@@ -4,7 +4,7 @@
   window.__VALKI_TALKI_LOADED__ = true;
   window.__VICHAT_WIDGET_LOADED__ = true;
 
-  console.log('[ValkiTalki] loader: start');
+  console.log('[Vichat] loader: start');
 
   const getMeta = (sel) => {
     const el = document.querySelector(sel);
@@ -51,7 +51,7 @@
     }
     // Fallback: search scripts by src
     const scripts = Array.from(document.querySelectorAll('script[src]'));
-    return scripts.find((s) => (s.getAttribute('src') || '').includes('valki-talki.js')) || null;
+    return scripts.find((s) => (s.getAttribute('src') || '').includes('vichat-widget.js')) || null;
   };
 
   const resolveBaseUrl = (scriptEl) => {
@@ -65,7 +65,7 @@
       }
     }
 
-    // Infer from loader src (/widget/valki-talki.js -> /widget)
+    // Infer from loader src (/widget/vichat-widget.js -> /widget)
     const src = scriptEl ? scriptEl.getAttribute('src') : null;
     if (!src) return '';
     try {
@@ -87,9 +87,9 @@
   };
 
   const showFailBadge = (reason) => {
-    if (document.getElementById('valki-fail-badge')) return;
+    if (document.getElementById('vichat-fail-badge')) return;
     const badge = document.createElement('div');
-    badge.id = 'valki-fail-badge';
+    badge.id = 'vichat-fail-badge';
     badge.textContent = `${displayName} failed to load`;
     badge.style.position = 'fixed';
     badge.style.right = '16px';
@@ -102,7 +102,7 @@
     badge.style.zIndex = '2147483646';
     (document.body || document.documentElement).appendChild(badge);
 
-    console.error('[ValkiTalki] loader: failed to load main script', { reason });
+    console.error('[Vichat] loader: failed to load main script', { reason });
   };
 
   const ensureRoot = () => {
@@ -129,16 +129,16 @@
 
   // ✅ Stable defaults (no manifest)
   const cssFile =
-    (scriptEl && scriptEl.getAttribute('data-valki-css-href')) || 'valki-talki.css';
+    (scriptEl && scriptEl.getAttribute('data-valki-css-href')) || 'vichat-widget.css';
   const mainFile =
-    (scriptEl && scriptEl.getAttribute('data-valki-main-src')) || 'valki-talki-main.js';
+    (scriptEl && scriptEl.getAttribute('data-valki-main-src')) || 'vichat-widget-main.js';
 
   const bootstrap = () => {
     const cssHref = buildAssetUrl(baseUrl, cssFile);
     const mainSrc = buildAssetUrl(baseUrl, mainFile);
 
-    console.log('[ValkiTalki] loader: resolved urls', { baseUrl, cssHref, mainScriptSrc: mainSrc });
-    console.log('[ValkiTalki] loader: assets', {
+    console.log('[Vichat] loader: resolved urls', { baseUrl, cssHref, mainScriptSrc: mainSrc });
+    console.log('[Vichat] loader: assets', {
       cssHref,
       mainScriptSrc: mainSrc,
       baseUrl,
@@ -170,7 +170,7 @@
       if (nonce) script.nonce = nonce;
 
       script.onload = () => {
-        console.log('[ValkiTalki] loader: main loaded');
+        console.log('[Vichat] loader: main loaded');
         // If your main defines the custom element async, this is harmless
         ensureWidgetElement();
       };

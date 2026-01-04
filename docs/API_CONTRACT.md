@@ -1,6 +1,6 @@
-# Valki Talki Widget API Contract (Stable)
+# Vichat Widget API Contract (Stable)
 
-This document defines the stable public contract for the Valki Talki widget. Breaking changes follow the deprecation policy below and only occur on major version bumps.
+This document defines the stable public contract for the Vichat widget. Breaking changes follow the deprecation policy below and only occur on major version bumps.
 
 ## Embed Snippets
 
@@ -8,7 +8,8 @@ This document defines the stable public contract for the Valki Talki widget. Bre
 ```html
 <script
   defer
-  src="https://cdn.example.com/widget/valki-talki.js"
+  src="https://cdn.example.com/widget/vichat-widget.js"
+  data-vichat-tenant="valki"
   data-valki-base-url="https://auth.valki.wiki"
 ></script>
 ```
@@ -17,7 +18,8 @@ This document defines the stable public contract for the Valki Talki widget. Bre
 ```html
 <script
   defer
-  src="https://cdn.example.com/widget/valki-talki.js"
+  src="https://cdn.example.com/widget/vichat-widget.js"
+  data-vichat-tenant="valki"
   data-valki-base-url="https://auth.valki.wiki"
   data-valki-embed-mode="iframe"
 ></script>

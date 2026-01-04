@@ -1,3 +1,5 @@
+import { FLAGS_OVERRIDE_KEY } from './config.js';
+
 const FLAG_KEYS = [
   'enableIframeMode',
   'enableMarkdown',
@@ -13,8 +15,6 @@ const DEFAULT_FLAGS = {
   enableCmpObserver: true,
   enableAuth: true
 };
-
-const OVERRIDE_KEY = 'valki_flags_override_v1';
 
 const toBoolean = (value) => {
   if (value === true || value === false) return value;
@@ -74,12 +74,15 @@ const findLoaderScript = () => {
     return document.currentScript;
   }
   const scripts = Array.from(document.querySelectorAll('script[src]'));
-  return scripts.find((script) => (script.getAttribute('src') || '').includes('valki-talki.js')) || null;
+  return scripts.find((script) => {
+    const src = script.getAttribute('src') || '';
+    return src.includes('vichat-widget.js') || src.includes('valki-talki.js');
+  }) || null;
 };
 
 const readOverrideFlags = () => {
   try {
-    const raw = localStorage.getItem(OVERRIDE_KEY);
+    const raw = localStorage.getItem(FLAGS_OVERRIDE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return readFlagsFromObject(parsed);

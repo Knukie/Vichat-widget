@@ -1,4 +1,4 @@
-# Valki Talki Integration Guide
+# Vichat Integration Guide
 
 ## 30-second install
 
@@ -12,7 +12,7 @@ Paste this snippet where you want the widget loader to run (typically in `<head>
   window.__VALKI_DEBUG__ = false;
   window.__VALKI_FLAGS__ = { "enableUploads": true };
 </script>
-<script defer src="https://cdn.example.com/valki/valki-talki.js"></script>
+<script defer src="https://cdn.example.com/widget/vichat-widget.js" data-vichat-tenant="valki"></script>
 ```
 
 If your CSP disallows inline scripts, configure via data attributes:
@@ -20,7 +20,8 @@ If your CSP disallows inline scripts, configure via data attributes:
 ```html
 <script
   defer
-  src="https://cdn.example.com/valki/valki-talki.js"
+  src="https://cdn.example.com/widget/vichat-widget.js"
+  data-vichat-tenant="valki"
   data-valki-base-url="https://auth.valki.wiki"
   data-valki-embed-mode="shadow"
   data-valki-mount-selector=""

@@ -1,4 +1,14 @@
-import { CLIENT_ID_KEY, HISTORY_KEY, MIGRATION_KEY } from './config.js';
+import {
+  CLIENT_ID_KEY,
+  CLIENT_ID_KEY_BASE,
+  FLAGS_OVERRIDE_KEY_BASE,
+  HISTORY_KEY,
+  HISTORY_KEY_BASE,
+  MIGRATION_KEY,
+  AUTH_TOKEN_KEY_BASE,
+  GUEST_METER_KEY_BASE,
+  storageKey
+} from './config.js';
 
 const LEGACY_HISTORY_KEY = 'valki_history_v20';
 const LEGACY_CLIENT_ID_KEY = 'valki_client_id_v20';
@@ -41,6 +51,28 @@ const sanitizeAttachments = (attachments) => {
   }, []);
 };
 
+const migrateUnprefixedKeys = () => {
+  const baseKeys = [
+    HISTORY_KEY_BASE,
+    AUTH_TOKEN_KEY_BASE,
+    GUEST_METER_KEY_BASE,
+    CLIENT_ID_KEY_BASE,
+    FLAGS_OVERRIDE_KEY_BASE
+  ];
+  let migrated = false;
+  baseKeys.forEach((baseKey) => {
+    const prefixedKey = storageKey(baseKey);
+    const existing = safeGet(prefixedKey);
+    if (existing !== null) return;
+    const legacyValue = safeGet(baseKey);
+    if (legacyValue === null) return;
+    if (safeSet(prefixedKey, legacyValue)) {
+      migrated = true;
+    }
+  });
+  return migrated;
+};
+
 const migrateLegacyHistory = () => {
   const raw = safeGet(LEGACY_HISTORY_KEY);
   if (!raw) return false;
@@ -81,8 +113,9 @@ const migrateLegacyClientId = () => {
 export const runMigrations = () => {
   const already = safeGet(MIGRATION_KEY);
   if (already === '1') return false;
+  const unprefixedMigrated = migrateUnprefixedKeys();
   const historyMigrated = migrateLegacyHistory();
   const clientMigrated = migrateLegacyClientId();
   safeSet(MIGRATION_KEY, '1');
-  return historyMigrated || clientMigrated;
+  return unprefixedMigrated || historyMigrated || clientMigrated;
 };

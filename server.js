@@ -44,6 +44,19 @@ app.get('/_debug/widget-files', (_req, res) => {
   }
 });
 
+// Backwards-compatible redirects for legacy asset URLs
+app.get('/widget/valki-talki.js', (_req, res) => {
+  res.redirect(301, '/widget/vichat-widget.js');
+});
+
+app.get('/widget/valki-talki-main.js', (_req, res) => {
+  res.redirect(301, '/widget/vichat-widget-main.js');
+});
+
+app.get('/widget/valki-talki.css', (_req, res) => {
+  res.redirect(301, '/widget/vichat-widget.css');
+});
+
 // Serve widget assets
 app.use(
   '/widget',
