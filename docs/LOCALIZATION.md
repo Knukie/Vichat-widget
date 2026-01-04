@@ -18,7 +18,7 @@ The widget picks a locale in this order:
 <script>
   window.__VALKI_LOCALE__ = 'nl';
 </script>
-<script defer src="https://cdn.example.com/widget/valki-talki.js"></script>
+<script defer src="https://cdn.example.com/widget/vichat-widget.js" data-vichat-tenant="valki"></script>
 ```
 
 ## Override Strings

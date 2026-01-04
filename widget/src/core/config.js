@@ -1,6 +1,6 @@
 const readScriptConfig = () => {
   if (typeof document === 'undefined') return {};
-  const script = document.querySelector('script[src*="valki-talki.js"]');
+  const script = document.querySelector('script[src*="vichat-widget.js"], script[src*="valki-talki.js"]');
   if (!script) return {};
   const getAttr = (name) => script.getAttribute(`data-valki-${name}`);
   return {
@@ -22,11 +22,22 @@ const embedModeValue = readValue(scriptConfig.embedMode, typeof window !== 'unde
 export const EMBED_MODE = embedModeValue === 'iframe' ? 'iframe' : 'shadow';
 export const MOUNT_SELECTOR = readValue(scriptConfig.mountSelector, typeof window !== 'undefined' ? window.__VALKI_MOUNT_SELECTOR__ : '', '');
 export const VALKI_WIDGET_VERSION = '__VALKI_VERSION__';
-export const HISTORY_KEY = 'valki_history_vNext';
-export const AUTH_TOKEN_KEY = 'valki_auth_token_v1';
-export const GUEST_METER_KEY = 'valki_guest_meter_v1';
-export const CLIENT_ID_KEY = 'valki_client_id';
-export const MIGRATION_KEY = 'valki_migrated_v1';
+const resolveTenant = (value) => (value === 'valki-tanki' ? 'valki-tanki' : 'valki');
+export const TENANT = resolveTenant(typeof window !== 'undefined' ? window.__VICHAT_TENANT__ : '');
+export const DISPLAY_NAME = TENANT === 'valki-tanki' ? 'Valki Talki' : 'Valki';
+export const STORAGE_PREFIX = `vichat_${TENANT}_`;
+export const storageKey = (key) => `${STORAGE_PREFIX}${key}`;
+export const HISTORY_KEY_BASE = 'valki_history_vNext';
+export const AUTH_TOKEN_KEY_BASE = 'valki_auth_token_v1';
+export const GUEST_METER_KEY_BASE = 'valki_guest_meter_v1';
+export const CLIENT_ID_KEY_BASE = 'valki_client_id';
+export const FLAGS_OVERRIDE_KEY_BASE = 'valki_flags_override_v1';
+export const HISTORY_KEY = storageKey(HISTORY_KEY_BASE);
+export const AUTH_TOKEN_KEY = storageKey(AUTH_TOKEN_KEY_BASE);
+export const GUEST_METER_KEY = storageKey(GUEST_METER_KEY_BASE);
+export const CLIENT_ID_KEY = storageKey(CLIENT_ID_KEY_BASE);
+export const FLAGS_OVERRIDE_KEY = storageKey(FLAGS_OVERRIDE_KEY_BASE);
+export const MIGRATION_KEY = storageKey('migrated_v1');
 export const REQUEST_TIMEOUT_MS = 20000;
 export const FALLBACK_REPLY = 'Thanks for your message.';
 export const GUEST_FREE_ROUND_SIZE = 3;
