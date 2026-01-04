@@ -1,120 +1,155 @@
 import { mkdir, readFile, writeFile } from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import esbuild from 'esbuild';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
 const rootDir = path.resolve(__dirname, '..');
 const widgetDir = path.join(rootDir, 'widget');
 const publicDir = path.join(rootDir, 'public');
+
 const entryFile = path.join(widgetDir, 'src', 'index.js');
 const cssSourcePath = path.join(widgetDir, 'valki-talki.css');
 const packageJsonPath = path.join(rootDir, 'package.json');
-const cssFileName = 'valki-talki.css';
+
+const JS_FILE = 'valki-talki.js';
+const CSS_FILE = 'valki-talki.css';
 
 const isProd = process.env.NODE_ENV === 'production';
 const sourcemap = !isProd;
 
 await mkdir(publicDir, { recursive: true });
 
+/**
+ * CSS auto-loader banner
+ * - Resolves base URL from the <script src="...">
+ * - Injects <link rel="stylesheet"> once
+ * - CSP/nonce aware
+ */
 const cssLoaderBanner = `
 (() => {
   if (typeof document === 'undefined') return;
+
   const findScript = () => {
     if (document.currentScript && document.currentScript.tagName === 'SCRIPT') {
       return document.currentScript;
     }
     const scripts = Array.from(document.querySelectorAll('script[src]'));
-    return scripts.find((script) => (script.getAttribute('src') || '').includes('valki-talki.js')) || null;
+    return scripts.find(s => (s.getAttribute('src') || '').includes('${JS_FILE}')) || null;
   };
+
   const resolveBaseUrl = (scriptEl) => {
-    const override = scriptEl ? scriptEl.getAttribute('data-valki-src-base') : null;
+    const override = scriptEl?.getAttribute('data-valki-src-base');
     if (override) {
       try {
         return new URL(override, document.baseURI).toString().replace(/\\/$/, '');
-      } catch (error) {
+      } catch {
         return override.replace(/\\/$/, '');
       }
     }
-    const src = scriptEl ? scriptEl.getAttribute('src') : null;
+
+    const src = scriptEl?.getAttribute('src');
     if (!src) return '';
+
     try {
-      const resolved = new URL(src, document.baseURI);
-      resolved.pathname = resolved.pathname.split('/').slice(0, -1).join('/');
-      return \`\${resolved.origin}\${resolved.pathname}\`;
-    } catch (error) {
+      const url = new URL(src, document.baseURI);
+      url.pathname = url.pathname.split('/').slice(0, -1).join('/');
+      return url.origin + url.pathname;
+    } catch {
       return src.split('/').slice(0, -1).join('/');
     }
   };
+
   const buildAssetUrl = (base, asset) => {
-    if (!base) return \`/\${asset}\`;
+    if (!base) return '/' + asset;
     try {
-      return new URL(asset, \`\${base}/\`).toString();
-    } catch (error) {
-      return \`\${base.replace(/\\/$/, '')}/\${asset}\`;
+      return new URL(asset, base + '/').toString();
+    } catch {
+      return base.replace(/\\/$/, '') + '/' + asset;
     }
   };
+
   const scriptEl = findScript();
   const baseUrl = resolveBaseUrl(scriptEl);
-  const cssOverride = scriptEl ? scriptEl.getAttribute('data-valki-css-href') : null;
-  const cssHref = buildAssetUrl(baseUrl, cssOverride || '${cssFileName}');
+  const cssOverride = scriptEl?.getAttribute('data-valki-css-href');
+
+  const cssHref = buildAssetUrl(baseUrl, cssOverride || '${CSS_FILE}');
+
   if (!document.querySelector('link[data-valki-widget="1"]')) {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = cssHref;
     link.setAttribute('data-valki-widget', '1');
-    const nonce = window.__VALKI_NONCE__ || (scriptEl ? scriptEl.getAttribute('nonce') : null);
+
+    const nonce =
+      window.__VALKI_NONCE__ ||
+      scriptEl?.getAttribute('nonce');
+
     if (nonce) link.nonce = nonce;
+
     (document.head || document.documentElement).appendChild(link);
   }
 })();
 `;
 
+/**
+ * Build JS – SINGLE classic bundle (IIFE)
+ */
 const jsBuild = await esbuild.build({
   entryPoints: [entryFile],
   bundle: true,
   format: 'iife',
   splitting: false,
   platform: 'browser',
+  target: ['es2018'],
   minify: isProd,
   sourcemap,
   write: false,
-  target: ['es2018'],
-  outfile: path.join(publicDir, 'valki-talki.js'),
   banner: {
     js: cssLoaderBanner
   }
 });
 
-const jsOutput = jsBuild.outputFiles.find((file) => file.path.endsWith('.js'));
+const jsOutput = jsBuild.outputFiles.find(f => f.path.endsWith('.js'));
 if (!jsOutput) {
-  throw new Error('Missing JS bundle output');
+  throw new Error('JS bundle not generated');
 }
-const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'));
-const jsContent = jsOutput.text;
-const versionStamp = packageJson.version || '0.0.0';
-const stampedContent = jsContent.replace(/__VALKI_VERSION__/g, versionStamp);
-const jsFileName = 'valki-talki.js';
-await writeFile(path.join(publicDir, jsFileName), stampedContent);
+
+const pkg = JSON.parse(await readFile(packageJsonPath, 'utf8'));
+const version = pkg.version || '0.0.0';
+
+const jsContent = jsOutput.text.replace(/__VALKI_VERSION__/g, version);
+await writeFile(path.join(publicDir, JS_FILE), jsContent);
 
 if (sourcemap) {
-  const mapOutput = jsBuild.outputFiles.find((file) => file.path.endsWith('.js.map'));
+  const mapOutput = jsBuild.outputFiles.find(f => f.path.endsWith('.js.map'));
   if (mapOutput) {
-    await writeFile(path.join(publicDir, 'valki-talki.js.map'), mapOutput.text);
+    await writeFile(path.join(publicDir, `${JS_FILE}.map`), mapOutput.text);
   }
 }
 
+/**
+ * Build CSS (single file, no hash)
+ */
 const cssSource = await readFile(cssSourcePath, 'utf8').catch(() => '');
-const cssTransform = await esbuild.transform(cssSource, {
+const cssResult = await esbuild.transform(cssSource, {
   loader: 'css',
   minify: isProd
 });
-const cssContent = cssTransform.code || '';
-await writeFile(path.join(publicDir, cssFileName), cssContent);
 
+await writeFile(path.join(publicDir, CSS_FILE), cssResult.code || '');
+
+/**
+ * Manifest (stable, non-hashed)
+ */
 const manifest = {
-  main: jsFileName,
-  css: cssFileName
+  main: JS_FILE,
+  css: CSS_FILE
 };
-await writeFile(path.join(publicDir, 'valki-talki-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+
+await writeFile(
+  path.join(publicDir, 'valki-talki-manifest.json'),
+  JSON.stringify(manifest, null, 2) + '\n'
+);
