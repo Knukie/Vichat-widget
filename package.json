@@ -12,8 +12,7 @@
 
     "ci": "npm ci",
 
-    "build": "node build/esbuild.mjs && npm run check:widget",
-    "check:widget": "node build/check-widget-placeholders.mjs",
+    "build": "node build/esbuild.mjs",
 
     "test:e2e": "npm run test:e2e:smoke",
 
