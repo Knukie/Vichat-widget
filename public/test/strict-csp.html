@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'nonce-valki-test-inline'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://auth.valki.wiki; frame-ancestors 'none'"
+    />
+    <title>Valki Talki Strict CSP Test</title>
+    <link rel="stylesheet" href="/widget/valki-talki.css" />
+    <script nonce="valki-test-inline">
+      window.__VALKI_TEST_HOOKS__ = { securitySmoke: true };
+    </script>
+  </head>
+  <body>
+    <valki-talki-widget></valki-talki-widget>
+    <script src="/widget/valki-talki.js" defer></script>
+  </body>
+</html>
