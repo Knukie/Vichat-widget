@@ -14,6 +14,7 @@ const PORT = Number(process.env.PORT || 3000);
 const widgetDir = path.join(__dirname, 'widget'); // ✅ map met valki-talki.js / valki-talki-main.js / valki-talki.css
 const publicDir = path.join(__dirname, 'public'); // ✅ optioneel: algemene public files
 const strictCspHtmlPath = path.join(publicDir, 'test', 'strict-csp.html'); // ✅ tests verwachten /test/strict-csp.html
+const distDir = path.join(__dirname, 'dist');
 
 // --- CORS voor widget assets (handig bij embed) ---
 function applyWidgetCors(res) {
@@ -45,16 +46,24 @@ app.get('/_debug/widget-files', (_req, res) => {
 });
 
 // Backwards-compatible redirects for legacy asset URLs
+app.get('/widget/vichat-widget.js', (_req, res) => {
+  res.redirect(301, '/dist/vichat-widget.min.js');
+});
+
+app.get('/widget/vichat-widget.css', (_req, res) => {
+  res.redirect(301, '/dist/vichat-widget.css');
+});
+
 app.get('/widget/valki-talki.js', (_req, res) => {
-  res.redirect(301, '/widget/vichat-widget.js');
+  res.redirect(301, '/dist/vichat-widget.min.js');
 });
 
 app.get('/widget/valki-talki-main.js', (_req, res) => {
-  res.redirect(301, '/widget/vichat-widget-main.js');
+  res.redirect(301, '/dist/vichat-widget.min.js');
 });
 
 app.get('/widget/valki-talki.css', (_req, res) => {
-  res.redirect(301, '/widget/vichat-widget.css');
+  res.redirect(301, '/dist/vichat-widget.css');
 });
 
 // Serve widget assets
@@ -69,6 +78,19 @@ app.use(
       if (filePath.endsWith('.js')) res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
       if (filePath.endsWith('.css')) res.setHeader('Content-Type', 'text/css; charset=utf-8');
       if (filePath.endsWith('.json')) res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    }
+  })
+);
+
+// Serve dist bundle (new API)
+app.use(
+  '/dist',
+  express.static(distDir, {
+    setHeaders: (res, filePath) => {
+      applyWidgetCors(res);
+      res.setHeader('Cache-Control', 'public, max-age=60');
+      if (filePath.endsWith('.js')) res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      if (filePath.endsWith('.css')) res.setHeader('Content-Type', 'text/css; charset=utf-8');
     }
   })
 );

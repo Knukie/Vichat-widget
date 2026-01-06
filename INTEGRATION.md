@@ -1,55 +1,40 @@
 # Vichat Integration Guide
 
-## 30-second install
+The widget bundle ships as `/dist/vichat-widget.min.js` and exposes `window.ViChat.mount()`. Both themes reuse the exact backend/API flows from `legacy/valki-talki-single.html`.
+An optional stylesheet is available at `/dist/vichat-widget.css` if you want to load styles separately from the script.
 
-Paste this snippet where you want the widget loader to run (typically in `<head>`).
+## Quick embeds
 
+### ViChat (default)
 ```html
+<script src="https://cdn.example.com/dist/vichat-widget.min.js" defer></script>
 <script>
-  window.__VALKI_BASE_URL__ = "https://auth.valki.wiki";
-  window.__VALKI_EMBED_MODE__ = "shadow";
-  window.__VALKI_MOUNT_SELECTOR__ = "";
-  window.__VALKI_DEBUG__ = false;
-  window.__VALKI_FLAGS__ = { "enableUploads": true };
+  window.ViChat.mount({
+    theme: 'vichat',
+    baseUrl: 'https://auth.valki.wiki'
+  });
 </script>
-<script defer src="https://cdn.example.com/widget/vichat-widget.js" data-vichat-tenant="valki"></script>
 ```
 
-If your CSP disallows inline scripts, configure via data attributes:
-
+### Valki Talki theme
 ```html
-<script
-  defer
-  src="https://cdn.example.com/widget/vichat-widget.js"
-  data-vichat-tenant="valki"
-  data-valki-base-url="https://auth.valki.wiki"
-  data-valki-embed-mode="shadow"
-  data-valki-mount-selector=""
-  data-valki-debug="false"
-  data-valki-flags='{"enableUploads":true}'
-></script>
+<script src="https://cdn.example.com/dist/vichat-widget.min.js" defer></script>
+<script>
+  window.ViChat.mount({
+    theme: 'valki',
+    baseUrl: 'https://auth.valki.wiki'
+  });
+</script>
 ```
 
-## Configuration options (globals)
+## Options
+- `theme`: `"vichat"` (default) or `"valki"`.
+- `baseUrl`: API/auth origin (defaults to `https://auth.valki.wiki`).
+- `target`: Optional element or selector to append the widget root into.
+- `avatarUrl` and other overrides map onto the legacy constants; request/response schema is unchanged:
+  - `POST /api/valki` with `{ message, clientId, images:[{name,type,dataUrl}] }` → `{ reply }`.
 
-These are read by the widget at load time. If you use data attributes, they are mapped to the same globals.
-
-- `window.__VALKI_BASE_URL__` (string)
-  - Base URL for API/auth calls. Default: `https://auth.valki.wiki`.
-- `window.__VALKI_EMBED_MODE__` (string)
-  - `"shadow"` (default) or `"iframe"`.
-- `window.__VALKI_MOUNT_SELECTOR__` (string)
-  - CSS selector for a container to mount into. Default is `<body>`.
-- `window.__VALKI_FLAGS__` (object)
-  - Feature flags object. Supported keys: `enableIframeMode`, `enableMarkdown`, `enableUploads`, `enableCmpObserver`, `enableAuth`.
-- `window.__VALKI_DEBUG__` (boolean)
-  - Enables debug logging and diagnostics.
-
-## CSP requirements
-
-You must allow the loader and bundled assets from your CDN, and allow the API origin defined by `__VALKI_BASE_URL__`.
-
-### Shadow mode CSP
+## CSP starter
 
 ```http
 Content-Security-Policy:
@@ -61,19 +46,4 @@ Content-Security-Policy:
   font-src 'self' https://cdn.example.com;
 ```
 
-### Iframe mode CSP
-
-```http
-Content-Security-Policy:
-  default-src 'self';
-  script-src 'self' https://cdn.example.com;
-  style-src 'self' https://cdn.example.com;
-  connect-src 'self' https://auth.valki.wiki;
-  frame-src https://cdn.example.com https://auth.valki.wiki;
-  img-src 'self' data: https://cdn.example.com;
-  font-src 'self' https://cdn.example.com;
-```
-
-Notes:
-- If you use a dedicated CDN hostname for widget assets, add it to `script-src`, `style-src`, `img-src`, and `font-src`.
-- `frame-src` is required only for iframe mode.
+Add your CDN hostname to `script-src`, `style-src`, `img-src`, and `font-src`. The widget runs in the host page (no iframe by default).
