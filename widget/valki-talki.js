@@ -4,7 +4,23 @@
   window.__VALKI_TALKI_LOADED__ = true;
   window.__VICHAT_WIDGET_LOADED__ = true;
 
-  console.log('[ValkiTalki] loader: start');
+  const log = (...args) => {
+    try {
+      console.log(...args);
+    } catch (_) {
+      // noop
+    }
+  };
+
+  const logError = (...args) => {
+    try {
+      console.error(...args);
+    } catch (_) {
+      // noop
+    }
+  };
+
+  log('[ValkiTalki] loader: start');
 
   const getMeta = (sel) => {
     const el = document.querySelector(sel);
@@ -102,7 +118,7 @@
     badge.style.zIndex = '2147483646';
     (document.body || document.documentElement).appendChild(badge);
 
-    console.error('[ValkiTalki] loader: failed to load main script', { reason });
+    logError('[ValkiTalki] loader: failed to load main script', { reason });
   };
 
   const ensureRoot = () => {
@@ -137,8 +153,8 @@
     const cssHref = buildAssetUrl(baseUrl, cssFile);
     const mainSrc = buildAssetUrl(baseUrl, mainFile);
 
-    console.log('[ValkiTalki] loader: resolved urls', { baseUrl, cssHref, mainScriptSrc: mainSrc });
-    console.log('[ValkiTalki] loader: assets', {
+    log('[ValkiTalki] loader: resolved urls', { baseUrl, cssHref, mainScriptSrc: mainSrc });
+    log('[ValkiTalki] loader: assets', {
       cssHref,
       mainScriptSrc: mainSrc,
       baseUrl,
@@ -147,6 +163,40 @@
       inlineBlocked,
       blobAllowed
     });
+
+    const inspectMainResponse = async () => {
+      if (typeof fetch !== 'function') return null;
+      try {
+        const response = await fetch(mainSrc, {
+          method: 'GET',
+          credentials: 'omit',
+          cache: 'no-store',
+          mode: 'cors'
+        });
+        const contentType = (response.headers && response.headers.get('content-type')) || '';
+        if (contentType.includes('text/html')) {
+          logError('[ValkiTalki] loader: main script returned HTML', { mainSrc, contentType });
+          showFailBadge('Main script returned HTML');
+          return false;
+        }
+        const snippet = await response
+          .text()
+          .then((text) => (text || '').slice(0, 200).trim().toLowerCase())
+          .catch(() => '');
+        if (snippet.startsWith('<!doctype html') || snippet.startsWith('<html')) {
+          logError('[ValkiTalki] loader: main script HTML response detected', { mainSrc });
+          showFailBadge('Main script HTML response detected');
+          return false;
+        }
+        return true;
+      } catch (error) {
+        logError('[ValkiTalki] loader: main script probe failed (non-blocking)', {
+          mainSrc,
+          error
+        });
+        return null;
+      }
+    };
 
     ensureRoot();
 
@@ -162,6 +212,12 @@
 
     // MAIN (✅ must be module to allow `export`)
     if (!document.querySelector('script[data-valki-widget="1"]')) {
+      const timeoutId = window.setTimeout(() => {
+        showFailBadge('Main script load timeout (8s)');
+      }, 8000);
+
+      void inspectMainResponse();
+
       const script = document.createElement('script');
       script.type = 'module'; // ✅ fixes "Unexpected token 'export'"
       script.src = mainSrc;
@@ -170,14 +226,18 @@
       if (nonce) script.nonce = nonce;
 
       script.onload = () => {
-        console.log('[ValkiTalki] loader: main loaded');
+        window.clearTimeout(timeoutId);
+        log('[ValkiTalki] loader: main loaded');
         // If your main defines the custom element async, this is harmless
         ensureWidgetElement();
       };
 
       script.onerror = (event) => {
+        window.clearTimeout(timeoutId);
         const reason =
-          (event && event.message) ? event.message : `Failed to load ${mainSrc}`;
+          event && event.message
+            ? event.message
+            : `Failed to load ${mainSrc}`;
         showFailBadge(reason);
       };
 
@@ -185,5 +245,10 @@
     }
   };
 
-  bootstrap();
+  try {
+    bootstrap();
+  } catch (error) {
+    logError('[ValkiTalki] loader: bootstrap failure', error);
+    showFailBadge(error && error.message ? error.message : 'Bootstrap error');
+  }
 })();
