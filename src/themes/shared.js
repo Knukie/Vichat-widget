@@ -1089,4 +1089,4 @@ html.valki-chat-open #valki-root .valki-messages{
 
 /* Utility */
 #valki-root .valki-hidden{ display:none !important; }
-`\n
+`;

@@ -92,8 +92,11 @@ function mountTemplate(theme, target) {
   const targetEl = target || document.body || document.documentElement;
   targetEl.appendChild(root);
 
-  const elements = {};
+  const elements = { 'valki-root': root };
   REQUIRED_IDS.forEach((id) => {
+    if (id === 'valki-root') {
+      return;
+    }
     elements[id] = root.querySelector(`#${id}`);
   });
 

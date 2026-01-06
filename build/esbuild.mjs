@@ -26,13 +26,13 @@ const escapeBackticks = (str) => str.replace(/`/g, '\\`');
 const templateSource = await readFile(templateHtmlPath, 'utf8');
 await writeFile(
   templateModulePath,
-  `// Generated from ${path.relative(rootDir, templateHtmlPath)}\nexport const templateHtml = \`${escapeBackticks(templateSource)}\`\\n`
+  `// Generated from ${path.relative(rootDir, templateHtmlPath)}\nexport const templateHtml = \`${escapeBackticks(templateSource)}\`;\n`
 );
 
 const cssSource = await readFile(sharedCssPath, 'utf8').catch(() => '');
 await writeFile(
   sharedCssModulePath,
-  `// Generated from ${path.relative(rootDir, sharedCssPath)}\nexport const sharedCss = \`${escapeBackticks(cssSource)}\`\\n`
+  `// Generated from ${path.relative(rootDir, sharedCssPath)}\nexport const sharedCss = \`${escapeBackticks(cssSource)}\`;\n`
 );
 
 const jsResult = await esbuild.build({
