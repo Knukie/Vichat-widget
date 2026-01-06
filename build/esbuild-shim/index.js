@@ -40,25 +40,28 @@ const getImports = (code) => {
 const transformExports = (code) => {
   const exportedNames = [];
   const exportConstRegex = /export\s+const\s+([A-Za-z0-9_$]+)/g;
-  const exportFunctionRegex = /export\s+function\s+([A-Za-z0-9_$]+)/g;
+  const exportFunctionRegex = /export\s+(async\s+)?function\s+([A-Za-z0-9_$]+)/g;
   const exportClassRegex = /export\s+class\s+([A-Za-z0-9_$]+)/g;
 
   let transformed = code;
-  for (const match of transformed.matchAll(exportConstRegex)) {
-    exportedNames.push(match[1]);
-  }
-  for (const match of transformed.matchAll(exportFunctionRegex)) {
-    exportedNames.push(match[1]);
-  }
-  for (const match of transformed.matchAll(exportClassRegex)) {
-    exportedNames.push(match[1]);
-  }
 
-  transformed = transformed
-    .replace(exportConstRegex, 'const $1')
-    .replace(exportFunctionRegex, 'function $1')
-    .replace(exportClassRegex, 'class $1')
-    .replace(/export\s+default\s+/g, 'exports.default = ');
+  transformed = transformed.replace(exportConstRegex, (_, name) => {
+    exportedNames.push(name);
+    return `const ${name}`;
+  });
+
+  transformed = transformed.replace(exportFunctionRegex, (_, asyncKeyword = '', name) => {
+    exportedNames.push(name);
+    const asyncPrefix = asyncKeyword ? `${asyncKeyword}` : '';
+    return `${asyncPrefix}function ${name}`;
+  });
+
+  transformed = transformed.replace(exportClassRegex, (_, name) => {
+    exportedNames.push(name);
+    return `class ${name}`;
+  });
+
+  transformed = transformed.replace(/export\s+default\s+/g, 'exports.default = ');
 
   if (exportedNames.length) {
     transformed += `\n${exportedNames.map((name) => `exports.${name} = ${name};`).join('\n')}\n`;

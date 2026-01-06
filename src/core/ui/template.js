@@ -159,4 +159,4 @@ export const templateHtml = `<div class="valki-root" id="valki-root">
   </div>
 
 </div>
-`\n
+`;
