@@ -1,25 +1,50 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'nonce-valki-test-inline'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://auth.valki.wiki; frame-ancestors 'none'"
+      content="default-src 'self';
+               script-src 'self' 'nonce-valki-test-inline' https://auth.valki.wiki;
+               style-src 'self' 'nonce-valki-test-inline' https://auth.valki.wiki;
+               img-src 'self' https://auth.valki.wiki data:;
+               connect-src 'self' https://auth.valki.wiki;
+               frame-ancestors 'none';
+               base-uri 'none';
+               object-src 'none';"
     />
-    <title>Valki Talki Strict CSP Test</title>
+    <title>Valki Talki Strict CSP</title>
+
     <link rel="stylesheet" href="/dist/vichat-widget.css" />
+    <style nonce="valki-test-inline">
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        padding: 24px;
+        background: #0b0b0b;
+        color: #fff;
+      }
+    </style>
+
     <script nonce="valki-test-inline">
+      // Security smoke test checks this flag:
       window.__VALKI_TEST_HOOKS__ = { securitySmoke: true };
+      // Enables the mount() hook to set window.__VICHAT_WIDGET__
       window.__VICHAT_TEST_HOOKS__ = true;
     </script>
   </head>
   <body>
+    <h1>Strict CSP Test</h1>
+    <p>Use the Valki badge to open chat and send a message.</p>
+
     <script src="/dist/vichat-widget.min.js"></script>
     <script nonce="valki-test-inline">
       window.addEventListener('DOMContentLoaded', () => {
-        if (window.ViChat?.mount) {
-          window.ViChat.mount({ theme: 'valki' });
-        }
+        window.ViChat?.mount?.({
+          theme: 'valki',
+          baseUrl: 'https://auth.valki.wiki'
+        });
       });
     </script>
   </body>
