@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/dist/vichat-widget.css" />
     <script nonce="valki-test-inline">
       window.__VALKI_TEST_HOOKS__ = { securitySmoke: true };
+      window.__VICHAT_TEST_HOOKS__ = true;
     </script>
   </head>
   <body>
@@ -17,7 +18,7 @@
     <script nonce="valki-test-inline">
       window.addEventListener('DOMContentLoaded', () => {
         if (window.ViChat?.mount) {
-          window.__VICHAT_WIDGET__ = window.ViChat.mount({ theme: 'valki' });
+          window.ViChat.mount({ theme: 'valki' });
         }
       });
     </script>

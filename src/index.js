@@ -836,6 +836,9 @@ export function mount(options = {}) {
   const widget = new ViChatWidget(options);
   const target = resolveMountTarget(options);
   widget.mount(target);
+  if (typeof window !== 'undefined' && window.__VICHAT_TEST_HOOKS__ === true) {
+    window.__VICHAT_WIDGET__ = widget;
+  }
   return widget;
 }
 
