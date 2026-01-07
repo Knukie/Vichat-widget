@@ -4,63 +4,44 @@ This document defines the stable public contract for the Vichat widget. Breaking
 
 ## Embed Snippets
 
-### Default (shadow DOM)
 ```html
-<script
-  defer
-  src="https://cdn.example.com/widget/vichat-widget.js"
-  data-vichat-tenant="valki"
-  data-valki-base-url="https://auth.valki.wiki"
-></script>
-```
-
-### Iframe mode
-```html
-<script
-  defer
-  src="https://cdn.example.com/widget/vichat-widget.js"
-  data-vichat-tenant="valki"
-  data-valki-base-url="https://auth.valki.wiki"
-  data-valki-embed-mode="iframe"
-></script>
+<link rel="stylesheet" href="https://cdn.example.com/dist/vichat-widget.css" />
+<script defer src="https://cdn.example.com/dist/vichat-widget.min.js"></script>
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    if (window.ViChat?.mount) {
+      window.ViChat.mount({
+        theme: 'vichat',
+        baseUrl: 'https://auth.valki.wiki'
+      });
+    }
+  });
+</script>
 ```
 
 ## Config Sources + Precedence (Stable)
 
-Configuration is resolved in the following order:
+Configuration is resolved from:
 
-1. `data-` attributes on the loader script tag
-2. Window globals (`window.__VALKI_*__`)
-3. Defaults
+1. Options passed to `window.ViChat.mount({ ... })`
+2. Defaults baked into the bundle
 
-## Supported Config Keys (Frozen)
+## Supported Config Keys (Stable)
 
 These keys are stable and backward-compatible:
 
-- `baseUrl`
-- `embedMode`
-- `mountSelector`
-- `flags`
-- `debug`
-- `iframeSandbox`
-
-## Iframe PostMessage Events
-
-When `embedMode="iframe"`, the following event types are supported:
-
-Host → iframe:
-- `valki_open`
-- `valki_close`
-- `valki_send`
-
-Iframe → host:
-- `valki_ready`
-- `valki_state`
+- `theme` (`"vichat"` or `"valki"`)
+- `baseUrl` (API/auth origin)
+- `target` (element or selector to mount into)
+- `avatarUrl`
+- `agents`
+- `startAgentId`
+- `mode`
 
 ## Backward Compatibility Promise
 
-- Legacy localStorage migrations are preserved.
-- The loader script URL remains stable with a compatible alias.
+- Local storage keys and backend request/response schema remain compatible with the legacy
+  implementation.
 
 ## Deprecation Policy
 

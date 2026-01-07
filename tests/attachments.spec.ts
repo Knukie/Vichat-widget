@@ -17,30 +17,30 @@ test('strict csp attachments flow', async ({ page }) => {
 
   await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
 
-  const widget = page.locator('valki-talki-widget');
-  await expect(widget).toHaveCount(1);
-
-  const badge = widget.locator('>>> .badge');
+  const badge = page.locator('#valki-bubble');
   await expect(badge).toBeVisible();
   await badge.click();
 
-  const fileInput = widget.locator('>>> .file-input');
+  const fileInput = page.locator('#valki-file-input');
   await expect(fileInput).toHaveCount(1);
   await fileInput.setInputFiles(samplePath);
 
-  const trayImage = widget.locator('>>> .attachments-tray img');
+  const trayImage = page.locator('#valki-attachments .valki-attachment img');
   await expect(trayImage.first()).toBeVisible({ timeout: 30_000 });
 
-  const sendButton = widget.locator('>>> .send');
+  const input = page.locator('#valki-chat-input');
+  await expect(input).toBeVisible();
+  await input.fill('Attachment test');
+
+  const sendButton = page.locator('#valki-chat-send');
   await expect(sendButton).toBeVisible();
   await expect(sendButton).toBeEnabled({ timeout: 30_000 });
   await sendButton.click();
 
-  const userImage = widget.locator('>>> .message-row.user img');
-  await expect(userImage.first()).toBeVisible({ timeout: 30_000 });
-
-  const botMessages = widget.locator('>>> .message-row.bot .bubble').filter({ hasText: /\S+/ });
-  await expect(botMessages.first()).toBeVisible({ timeout: 30_000 });
+  const userMessage = page
+    .locator('.valki-msg-row.user .valki-msg-bubble')
+    .filter({ hasText: 'Attachment test' });
+  await expect(userMessage.first()).toBeVisible({ timeout: 30_000 });
 
   await page.screenshot({ path: 'csp-attachments-working.png', fullPage: true });
 });

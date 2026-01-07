@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Valki Talki Step 9</title>
+    <link rel="stylesheet" href="../dist/vichat-widget.css" />
     <style>
       body {
         font-family: system-ui, sans-serif;
@@ -122,7 +123,17 @@
         });
       });
     </script>
-    <script defer src="../widget/valki-talki.js"></script>
+    <script src="../dist/vichat-widget.min.js"></script>
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        if (window.ViChat?.mount) {
+          window.__VICHAT_WIDGET__ = window.ViChat.mount({
+            theme: 'valki',
+            baseUrl: 'https://auth.valki.wiki'
+          });
+        }
+      });
+    </script>
   </head>
   <body>
     <div class="panel">

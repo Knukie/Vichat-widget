@@ -8,10 +8,9 @@ const useBuild = process.env.VALKI_USE_BUILD === '1' || process.env.VALKI_USE_BU
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const publicDir = path.join(__dirname, '..', '..', 'public');
-const manifestPath = path.join(publicDir, 'valki-talki-manifest.json');
-
-const defaultWidgetScript = 'valki-talki.js';
+const distDir = path.join(__dirname, '..', '..', 'dist');
+const defaultWidgetScript = 'vichat-widget.min.js';
+const defaultWidgetCss = 'vichat-widget.css';
 
 const contentTypeFor = (assetName: string) => {
   if (assetName.endsWith('.css')) return 'text/css';
@@ -20,7 +19,7 @@ const contentTypeFor = (assetName: string) => {
 
 const fulfillAsset = async (route: Route, assetName: string) => {
   try {
-    const filePath = path.join(publicDir, assetName);
+    const filePath = path.join(distDir, assetName);
     const body = await fs.readFile(filePath);
     await route.fulfill({
       status: 200,
@@ -37,29 +36,11 @@ const fulfillAsset = async (route: Route, assetName: string) => {
 export const maybeRouteBuildAssets = async (page: Page) => {
   if (!useBuild) return;
 
-  let manifest: { main?: string; css?: string } = {};
-  try {
-    const manifestRaw = await fs.readFile(manifestPath, 'utf8');
-    manifest = JSON.parse(manifestRaw) as { main?: string; css?: string };
-  } catch {
-    manifest = {};
-  }
-
-  // Always support the stable, non-hashed entry name.
-  await page.route('**/widget/valki-talki.js', async (route) => {
+  await page.route('**/dist/vichat-widget.min.js', async (route) => {
     await fulfillAsset(route, defaultWidgetScript);
   });
 
-  // If a build manifest exists, route hashed assets too.
-  if (manifest.main) {
-    await page.route(`**/widget/${manifest.main}`, async (route) => {
-      await fulfillAsset(route, manifest.main as string);
-    });
-  }
-
-  if (manifest.css) {
-    await page.route(`**/widget/${manifest.css}`, async (route) => {
-      await fulfillAsset(route, manifest.css as string);
-    });
-  }
+  await page.route('**/dist/vichat-widget.css', async (route) => {
+    await fulfillAsset(route, defaultWidgetCss);
+  });
 };

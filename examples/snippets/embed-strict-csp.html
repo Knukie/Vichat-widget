@@ -4,18 +4,18 @@
     <meta charset="utf-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdn.example.com; style-src 'self' https://cdn.example.com; connect-src 'self' https://auth.valki.wiki; img-src 'self' data: https://cdn.example.com; font-src 'self' https://cdn.example.com"
+      content="default-src 'self'; script-src 'self' https://cdn.example.com 'nonce-vichat-demo'; style-src 'self' https://cdn.example.com; connect-src 'self' https://auth.valki.wiki; img-src 'self' data: https://cdn.example.com; font-src 'self' https://cdn.example.com"
     />
     <title>Valki Talki Strict CSP</title>
-    <script
-      defer
-      src="https://cdn.example.com/widget/vichat-widget.js"
-      data-vichat-tenant="valki"
-      data-valki-base-url="https://auth.valki.wiki"
-      data-valki-embed-mode="shadow"
-      data-valki-mount-selector=""
-      data-valki-debug="false"
-    ></script>
+    <link rel="stylesheet" href="https://cdn.example.com/dist/vichat-widget.css" />
+    <script defer src="https://cdn.example.com/dist/vichat-widget.min.js"></script>
+    <script nonce="vichat-demo">
+      window.addEventListener('DOMContentLoaded', () => {
+        if (window.ViChat?.mount) {
+          window.ViChat.mount({ theme: 'valki', baseUrl: 'https://auth.valki.wiki' });
+        }
+      });
+    </script>
   </head>
   <body>
   </body>

@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>Valki Talki Widget Step 4</title>
+    <link rel="stylesheet" href="https://widget.valki.wiki/dist/vichat-widget.css" />
     <style>
       body {
         font-family: system-ui, sans-serif;
@@ -16,7 +17,17 @@
         line-height: 1.5;
       }
     </style>
-    <script defer src="https://widget.valki.wiki/widget/valki-talki.js"></script>
+    <script src="https://widget.valki.wiki/dist/vichat-widget.min.js"></script>
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        if (window.ViChat?.mount) {
+          window.__VICHAT_WIDGET__ = window.ViChat.mount({
+            theme: 'valki',
+            baseUrl: 'https://auth.valki.wiki'
+          });
+        }
+      });
+    </script>
   </head>
   <body>
     <div class="instructions">

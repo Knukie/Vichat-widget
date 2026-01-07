@@ -4,10 +4,11 @@
     <meta charset="utf-8" />
     <title>Valki Talki Host Smoke</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/dist/vichat-widget.css" />
   </head>
   <body>
     <h1>Valki Talki Host Smoke</h1>
-    <script src="/valki-talki.js"></script>
+    <script src="/dist/vichat-widget.min.js"></script>
     <script>
       const waitFor = (predicate, { timeout = 8000, interval = 100 } = {}) => {
         const start = Date.now();
@@ -22,16 +23,16 @@
       };
 
       const runSmoke = async () => {
-        await customElements.whenDefined('valki-talki-widget');
-        const widget = await waitFor(() => document.querySelector('valki-talki-widget'));
-        await waitFor(() => widget.shadowRoot);
-        const rootExists = !!document.getElementById('valki-root');
-        const badge = widget.shadowRoot.querySelector('.badge');
+        if (window.ViChat?.mount) {
+          window.ViChat.mount({ theme: 'valki' });
+        }
+        const rootExists = await waitFor(() => !!document.getElementById('valki-root'));
+        const badge = await waitFor(() => document.getElementById('valki-bubble'));
         const badgeVisible = !!badge && badge.getClientRects().length > 0;
         if (badge) badge.click();
         await new Promise((resolve) => setTimeout(resolve, 150));
-        const overlay = widget.shadowRoot.querySelector('.overlay');
-        const overlayOpen = !!overlay && overlay.classList.contains('open');
+        const overlay = document.getElementById('valki-overlay');
+        const overlayOpen = !!overlay && overlay.classList.contains('is-visible');
         if (rootExists && badgeVisible && overlayOpen) {
           console.log('VALKI_SMOKE_OK');
         } else {

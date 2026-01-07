@@ -3,11 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <title>Valki Talki Iframe Embed</title>
+    <link rel="stylesheet" href="https://cdn.example.com/dist/vichat-widget.css" />
+    <script defer src="https://cdn.example.com/dist/vichat-widget.min.js"></script>
     <script>
-      window.__VALKI_BASE_URL__ = "https://auth.valki.wiki";
-      window.__VALKI_EMBED_MODE__ = "iframe";
+      window.addEventListener('DOMContentLoaded', () => {
+        if (window.ViChat?.mount) {
+          window.ViChat.mount({ theme: 'valki', baseUrl: 'https://auth.valki.wiki' });
+        }
+      });
     </script>
-    <script defer src="https://cdn.example.com/widget/vichat-widget.js" data-vichat-tenant="valki"></script>
   </head>
   <body>
   </body>

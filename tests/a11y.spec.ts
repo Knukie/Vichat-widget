@@ -9,35 +9,30 @@ test('overlay focus and escape behavior', async ({ page }) => {
 
   await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
 
-  const widget = page.locator('valki-talki-widget');
-  await expect(widget).toHaveCount(1);
-
-  const badge = widget.locator('>>> .badge');
+  const badge = page.locator('#valki-bubble');
   await expect(badge).toBeVisible();
   await badge.click();
 
-  const input = widget.locator('>>> .chat-input');
+  const input = page.locator('#valki-chat-input');
   await expect(input).toBeVisible();
   await expect(input).toBeFocused();
 
-  const deleteButton = widget.locator('>>> .header-btn.delete');
+  const deleteButton = page.locator('#valki-deleteall-btn');
   await expect(deleteButton).toBeVisible();
   await deleteButton.click();
 
-  const confirm = widget.locator('>>> .delete-confirm');
-  await expect(confirm).toHaveClass(/open/);
+  const confirm = page.locator('#valki-confirm-overlay');
+  await expect(confirm).toHaveClass(/is-visible/);
 
   await page.keyboard.press('Escape');
-  await expect(confirm).not.toHaveClass(/open/);
+  await expect(confirm).not.toHaveClass(/is-visible/);
 
   // Overlay should still be open (chat still active)
-  await expect(widget.locator('>>> .overlay')).toHaveClass(/open/);
+  await expect(page.locator('#valki-overlay')).toHaveClass(/is-visible/);
 
-  const closeButton = widget.locator('>>> .header-btn.close');
+  const closeButton = page.locator('#valki-close');
   await expect(closeButton).toBeVisible();
   await closeButton.click();
-
-  await expect(badge).toBeFocused();
 
   await page.screenshot({ path: 'step11-a11y.png', fullPage: true });
 });

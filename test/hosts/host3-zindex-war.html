@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Host 3 Z-Index War</title>
+    <link rel="stylesheet" href="/dist/vichat-widget.css" />
     <style>
       html, body {
         margin: 0;
@@ -42,6 +43,16 @@
     <div class="content">
       <p>Scroll content under the widget overlay.</p>
     </div>
-    <script src="/widget/valki-talki.js" defer></script>
+    <script src="/dist/vichat-widget.min.js"></script>
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        if (window.ViChat?.mount) {
+          window.__VICHAT_WIDGET__ = window.ViChat.mount({
+            theme: 'valki',
+            baseUrl: window.__VALKI_BASE_URL__ || 'https://auth.valki.wiki'
+          });
+        }
+      });
+    </script>
   </body>
 </html>

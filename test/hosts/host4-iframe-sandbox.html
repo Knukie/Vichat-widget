@@ -34,6 +34,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Sandboxed Host</title>
+    <link rel="stylesheet" href="../../dist/vichat-widget.css" />
     <style>
       html, body { margin: 0; padding: 0; font-family: system-ui, sans-serif; }
     </style>
@@ -44,7 +45,17 @@
   </head>
   <body>
     <h2>Sandboxed iframe host</h2>
-    <script src="/widget/valki-talki.js" defer><\/script>
+    <script src="../../dist/vichat-widget.min.js"><\/script>
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        if (window.ViChat?.mount) {
+          window.__VICHAT_WIDGET__ = window.ViChat.mount({
+            theme: 'valki',
+            baseUrl: window.__VALKI_BASE_URL__ || 'https://auth.valki.wiki'
+          });
+        }
+      });
+    <\/script>
   </body>
 </html>`;
     </script>

@@ -2,9 +2,12 @@
 
 Self-injecting ViChat chat widget built from the legacy single-file implementation.
 
-## Legacy source (reference)
+## Source of truth
 
-- `legacy/valki-talki-single.html` remains the source of truth for HTML structure, CSS, and runtime behavior.
+- Production widget code lives in `/src` and is bundled by `npm run build` into `dist/vichat-widget.min.js` and
+  `dist/vichat-widget.css`.
+- `/widget` is **only** a host/demo/examples harness that loads the built assets from `/dist`.
+- `legacy/valki-talki-single.html` remains a reference for the legacy single-file implementation.
 - The refactored bundle preserves the same backend endpoints, request/response schema, and UX flows.
 
 ## Local development
@@ -25,7 +28,7 @@ Self-injecting ViChat chat widget built from the legacy single-file implementati
    The server responds to:
    - `GET /` → `OK` (health check)
    - `GET /dist/vichat-widget.min.js` → serves the bundled widget
-   - `GET /widget/demo.html` → interactive demo for both themes
+   - `GET /widget/host/demo.html` → interactive demo for both themes
 
 ## Railway deployment notes
 
@@ -37,6 +40,7 @@ Self-injecting ViChat chat widget built from the legacy single-file implementati
 
 ### ViChat (default theme)
 ```html
+<link rel="stylesheet" href="https://YOUR-RAILWAY-URL/dist/vichat-widget.css" />
 <script src="https://YOUR-RAILWAY-URL/dist/vichat-widget.min.js" defer></script>
 <script>
   window.ViChat.mount({
@@ -48,6 +52,7 @@ Self-injecting ViChat chat widget built from the legacy single-file implementati
 
 ### Valki Talki theme
 ```html
+<link rel="stylesheet" href="https://YOUR-RAILWAY-URL/dist/vichat-widget.css" />
 <script src="https://YOUR-RAILWAY-URL/dist/vichat-widget.min.js" defer></script>
 <script>
   window.ViChat.mount({

@@ -2,10 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- Notes: Strict CSP, no inline scripts. -->
+    <!-- Notes: Strict CSP with a nonce for the mount call. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdn.example.com; style-src 'self' https://cdn.example.com; connect-src 'self' https://auth.valki.wiki; img-src 'self' data: https://cdn.example.com; font-src 'self' https://cdn.example.com; frame-src https://cdn.example.com https://auth.valki.wiki"
+      content="default-src 'self'; script-src 'self' https://cdn.example.com 'nonce-vichat-demo'; style-src 'self' https://cdn.example.com; connect-src 'self' https://auth.valki.wiki; img-src 'self' data: https://cdn.example.com; font-src 'self' https://cdn.example.com; frame-src https://cdn.example.com https://auth.valki.wiki"
     />
     <title>Enterprise CSP Host</title>
     <style>
@@ -35,14 +35,15 @@
         border: 1px solid rgba(255, 255, 255, 0.08);
       }
     </style>
-    <script
-      defer
-      src="https://cdn.example.com/widget/vichat-widget.js"
-      data-vichat-tenant="valki"
-      data-valki-base-url="https://auth.valki.wiki"
-      data-valki-embed-mode="shadow"
-      data-valki-debug="false"
-    ></script>
+    <link rel="stylesheet" href="https://cdn.example.com/dist/vichat-widget.css" />
+    <script defer src="https://cdn.example.com/dist/vichat-widget.min.js"></script>
+    <script nonce="vichat-demo">
+      window.addEventListener('DOMContentLoaded', () => {
+        if (window.ViChat?.mount) {
+          window.ViChat.mount({ theme: 'valki', baseUrl: 'https://auth.valki.wiki' });
+        }
+      });
+    </script>
   </head>
   <body>
     <!-- Notes: The widget is configured using data attributes only. -->

@@ -66,10 +66,15 @@
         font-size: 12px;
       }
     </style>
+    <link rel="stylesheet" href="https://cdn.example.com/dist/vichat-widget.css" />
+    <script defer src="https://cdn.example.com/dist/vichat-widget.min.js"></script>
     <script>
-      window.__VALKI_BASE_URL__ = "https://auth.valki.wiki";
+      window.addEventListener('DOMContentLoaded', () => {
+        if (window.ViChat?.mount) {
+          window.ViChat.mount({ theme: 'valki', baseUrl: 'https://auth.valki.wiki' });
+        }
+      });
     </script>
-    <script defer src="https://cdn.example.com/widget/vichat-widget.js" data-vichat-tenant="valki"></script>
   </head>
   <body>
     <!-- Notes: This page stresses global resets and overflow hidden hero sections. -->

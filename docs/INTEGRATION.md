@@ -12,6 +12,7 @@ An optional stylesheet is available at `/dist/vichat-widget.css` if you prefer t
 ## Quick start (ViChat default)
 
 ```html
+<link rel="stylesheet" href="https://cdn.example.com/dist/vichat-widget.css" />
 <script src="https://cdn.example.com/dist/vichat-widget.min.js" defer></script>
 <script>
   window.ViChat.mount({
@@ -24,6 +25,7 @@ An optional stylesheet is available at `/dist/vichat-widget.css` if you prefer t
 ## Valki Talki theme
 
 ```html
+<link rel="stylesheet" href="https://cdn.example.com/dist/vichat-widget.css" />
 <script src="https://cdn.example.com/dist/vichat-widget.min.js" defer></script>
 <script>
   window.ViChat.mount({

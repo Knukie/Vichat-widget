@@ -11,7 +11,7 @@ const app = express();
 const PORT = Number(process.env.PORT || 3000);
 
 // --- Paths (pas dit aan als jouw repo anders is) ---
-const widgetDir = path.join(__dirname, 'widget'); // ✅ map met valki-talki.js / valki-talki-main.js / valki-talki.css
+const widgetDir = path.join(__dirname, 'widget'); // ✅ host/demo/examples (no runtime code)
 const publicDir = path.join(__dirname, 'public'); // ✅ optioneel: algemene public files
 const strictCspHtmlPath = path.join(publicDir, 'test', 'strict-csp.html'); // ✅ tests verwachten /test/strict-csp.html
 const distDir = path.join(__dirname, 'dist');
@@ -52,6 +52,10 @@ app.get('/widget/vichat-widget.js', (_req, res) => {
 
 app.get('/widget/vichat-widget.css', (_req, res) => {
   res.redirect(301, '/dist/vichat-widget.css');
+});
+
+app.get('/widget/demo.html', (_req, res) => {
+  res.redirect(301, '/widget/host/demo.html');
 });
 
 app.get('/widget/valki-talki.js', (_req, res) => {
