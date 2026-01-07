@@ -29,6 +29,8 @@ test('strict csp chat flow', async ({ page }) => {
 
   await page.goto(`${ORIGIN}/test/strict-csp.html`, { waitUntil: 'domcontentloaded' });
 
+  await expect(page.locator('body[data-valki-ready="true"]')).toHaveCount(1);
+
   const badge = page.locator('#valki-bubble');
   await expect(badge).toBeVisible();
   await badge.click();

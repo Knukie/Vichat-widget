@@ -58,22 +58,25 @@
 
     <script nonce="valki-test-inline">
       window.addEventListener('DOMContentLoaded', () => {
-        window.ViChat?.mount?.({
+        const widget = window.ViChat?.mount?.({
           theme: 'valki',
           baseUrl: 'https://auth.valki.wiki'
         });
+        if (widget?.messageController) {
+          document.body.setAttribute('data-valki-ready', 'true');
+        }
 
         const btn = document.getElementById('valki-test-inject-btn');
         const input = document.getElementById('valki-test-inject-text');
 
         btn?.addEventListener('click', async () => {
-          const widget = window.__VICHAT_WIDGET__;
-          if (!widget || !widget.messageController) return;
+          const activeWidget = widget || window.__VICHAT_WIDGET__;
+          if (!activeWidget || !activeWidget.messageController) return;
 
           const text = String(input?.value || '');
           if (!text) return;
 
-          await widget.messageController.addMessage({ type: 'bot', text });
+          await activeWidget.messageController.addMessage({ type: 'bot', text });
         });
       });
     </script>

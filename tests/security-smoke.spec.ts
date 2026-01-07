@@ -37,6 +37,8 @@ test('security smoke: bot content is escaped and links are hardened', async ({ p
     waitUntil: 'domcontentloaded'
   });
 
+  await expect(page.locator('body[data-valki-ready="true"]')).toHaveCount(1);
+
   // Test-only inject controls must exist, otherwise skip
   const injectBtn = page.locator('#valki-test-inject-btn');
   await expect(injectBtn).toHaveCount(1);
