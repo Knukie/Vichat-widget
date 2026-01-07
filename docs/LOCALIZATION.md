@@ -4,32 +4,14 @@
 
 The widget picks a locale in this order:
 
-1. `window.__VALKI_LOCALE__` (forced locale)
-2. `navigator.languages`
-3. Fallback to `en`
+1. `navigator.languages`
+2. Fallback to `en`
 
 ## Supported Locales
 
 `en`, `nl`, `de`, `fr`, `es`, `it`, `pt`, `pl`, `tr`, `ar`, `ja`, `zh`, `ko`
 
-## Force a Locale
+## Forcing a Locale
 
-```html
-<script>
-  window.__VALKI_LOCALE__ = 'nl';
-</script>
-<script defer src="https://cdn.example.com/widget/vichat-widget.js" data-vichat-tenant="valki"></script>
-```
-
-## Override Strings
-
-Provide optional string overrides using `window.__VALKI_I18N_OVERRIDES__`. Only string values are applied.
-
-```html
-<script>
-  window.__VALKI_I18N_OVERRIDES__ = {
-    'button.login': 'Sign in',
-    'placeholder.composer': 'Ask a question...'
-  };
-</script>
-```
+Locale selection follows the host browser settings. To test a specific language, adjust the
+browser or OS language preferences and reload the page.

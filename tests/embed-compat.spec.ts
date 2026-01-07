@@ -30,35 +30,32 @@ const maybeRouteShell = async (page: Page) => {
 };
 
 const openShadowWidget = async (page: Page) => {
-  const widget = page.locator('valki-talki-widget');
-  await expect(widget).toHaveCount(1);
-
-  const badge = widget.locator('>>> .badge');
+  const badge = page.locator('#valki-bubble');
   await expect(badge).toBeVisible();
   await badge.click();
 
-  const input = widget.locator('>>> .chat-input');
+  const input = page.locator('#valki-chat-input');
   await expect(input).toBeVisible();
   await input.fill('Embed compatibility test');
   await input.press('Enter');
 
-  const userMessage = widget.locator('>>> .message-row.user .bubble').filter({
+  const userMessage = page.locator('.valki-msg-row.user .valki-msg-bubble').filter({
     hasText: 'Embed compatibility test'
   });
   await expect(userMessage).toBeVisible();
 };
 
 const openIframeWidget = async (frameLocator: FrameLocator) => {
-  const badge = frameLocator.locator('.badge');
+  const badge = frameLocator.locator('#valki-bubble');
   await expect(badge).toBeVisible();
   await badge.click();
 
-  const input = frameLocator.locator('.chat-input');
+  const input = frameLocator.locator('#valki-chat-input');
   await expect(input).toBeVisible();
   await input.fill('Embed compatibility test');
   await input.press('Enter');
 
-  const userMessage = frameLocator.locator('.message-row.user .bubble').filter({
+  const userMessage = frameLocator.locator('.valki-msg-row.user .valki-msg-bubble').filter({
     hasText: 'Embed compatibility test'
   });
   await expect(userMessage).toBeVisible();
@@ -101,8 +98,6 @@ test('embed host 4 iframe sandbox', async ({ page }) => {
   await page.goto(pageUrl, { waitUntil: 'networkidle' });
 
   const sandboxFrame = page.frameLocator('#sandbox-frame');
-  const widgetFrame = sandboxFrame.frameLocator('iframe[data-valki-embed="iframe"]');
-
-  await openIframeWidget(widgetFrame);
+  await openIframeWidget(sandboxFrame);
   await page.screenshot({ path: 'embed-host4.png', fullPage: true });
 });

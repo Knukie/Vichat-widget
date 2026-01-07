@@ -29,13 +29,10 @@ async function routeHtml(page: any, urlPath: string, filePath: string) {
 
 // Minimal injection helper (only runs when hook is enabled on the test page)
 async function injectBotMessage(page: any, message: string) {
-  await page.evaluate((text) => {
-    const widget = document.querySelector('valki-talki-widget') as any;
-    if (!widget) throw new Error('Widget not found');
-
-    // Best-effort: only for test pages that explicitly opt-in
-    widget._messages = [{ role: 'bot', text }];
-    if (typeof widget._renderMessages === 'function') widget._renderMessages(true);
+  await page.evaluate(async (text) => {
+    const widget = (window as any).__VICHAT_WIDGET__;
+    if (!widget || !widget.messageController) throw new Error('Widget not found');
+    await widget.messageController.addMessage({ type: 'bot', text });
   }, message);
 }
 
@@ -46,24 +43,12 @@ test('security smoke: bot content is escaped and links are hardened', async ({ p
 
   await page.goto(`${ORIGIN}/test/strict-csp.html`, { waitUntil: 'domcontentloaded' });
 
-  await page.addScriptTag({ url: `${ORIGIN}/widget/valki-talki.js` });
-
-  await page.evaluate(() => {
-    if (!document.querySelector('valki-talki-widget')) {
-      const el = document.createElement('valki-talki-widget');
-      document.body.appendChild(el);
-    }
-  });
-
   const hookEnabled = await page.evaluate(() => Boolean(window.__VALKI_TEST_HOOKS__?.securitySmoke));
   if (!hookEnabled) test.skip(true, 'Security smoke test requires an explicit test hook on the page.');
 
-  const widget = page.locator('valki-talki-widget');
-  await expect(widget).toHaveCount(1);
-
   await injectBotMessage(page, '<img src=x onerror=alert(1)> [bad](javascript:alert(1)) https://example.com');
 
-  const bubble = widget.locator('>>> .message-row.bot .bubble');
+  const bubble = page.locator('.valki-msg-row.bot .valki-msg-bubble');
   await expect(bubble).toContainText('<img src=x onerror=alert(1)>');
   await expect(bubble.locator('img')).toHaveCount(0);
   await expect(bubble.locator('a[href^="javascript:"]')).toHaveCount(0);

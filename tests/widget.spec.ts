@@ -29,30 +29,16 @@ test('strict csp chat flow', async ({ page }) => {
 
   await page.goto(`${ORIGIN}/test/strict-csp.html`, { waitUntil: 'domcontentloaded' });
 
-  // Deterministic script load
-  await page.addScriptTag({ url: `${ORIGIN}/widget/valki-talki.js` });
-
-  // Ensure widget element exists
-  await page.evaluate(() => {
-    if (!document.querySelector('valki-talki-widget')) {
-      const el = document.createElement('valki-talki-widget');
-      document.body.appendChild(el);
-    }
-  });
-
-  const widget = page.locator('valki-talki-widget');
-  await expect(widget).toHaveCount(1);
-
-  const badge = widget.locator('>>> .badge');
+  const badge = page.locator('#valki-bubble');
   await expect(badge).toBeVisible();
   await badge.click();
 
-  const input = widget.locator('>>> .chat-input');
+  const input = page.locator('#valki-chat-input');
   await expect(input).toBeVisible();
   await input.fill('hello');
   await input.press('Enter');
 
-  const botMessages = widget.locator('>>> .message-row.bot .bubble').filter({ hasText: /\S+/ });
+  const botMessages = page.locator('.valki-msg-row.bot .valki-msg-bubble').filter({ hasText: /\S+/ });
   await expect(botMessages.first()).toBeVisible({ timeout: 30000 });
 
   await page.screenshot({ path: 'csp-chat-working.png', fullPage: true });

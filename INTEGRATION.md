@@ -1,12 +1,15 @@
 # Vichat Integration Guide
 
-The widget bundle ships as `/dist/vichat-widget.min.js` and exposes `window.ViChat.mount()`. Both themes reuse the exact backend/API flows from `legacy/valki-talki-single.html`.
+The widget bundle ships as `/dist/vichat-widget.min.js` and exposes `window.ViChat.mount()`.
+Production source lives in `/src`, and `/widget` is reserved for host/demo/example pages that load `/dist`.
+Both themes reuse the exact backend/API flows from `legacy/valki-talki-single.html`.
 An optional stylesheet is available at `/dist/vichat-widget.css` if you want to load styles separately from the script.
 
 ## Quick embeds
 
 ### ViChat (default)
 ```html
+<link rel="stylesheet" href="https://cdn.example.com/dist/vichat-widget.css" />
 <script src="https://cdn.example.com/dist/vichat-widget.min.js" defer></script>
 <script>
   window.ViChat.mount({
@@ -18,6 +21,7 @@ An optional stylesheet is available at `/dist/vichat-widget.css` if you want to 
 
 ### Valki Talki theme
 ```html
+<link rel="stylesheet" href="https://cdn.example.com/dist/vichat-widget.css" />
 <script src="https://cdn.example.com/dist/vichat-widget.min.js" defer></script>
 <script>
   window.ViChat.mount({

@@ -7,4 +7,4 @@
 - [ ] Update `CHANGELOG.md`.
 - [ ] Regenerate SBOM: `node scripts/generate-sbom.mjs`.
 - [ ] Verify `SBOM.json` and licenses.
-- [ ] Publish updated assets from `public/` and `widget/`.
+- [ ] Publish updated assets from `dist/` (and any required `public/` files).

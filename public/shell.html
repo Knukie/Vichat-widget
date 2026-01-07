@@ -32,6 +32,17 @@
     </script>
   </head>
   <body>
-    <script src="/widget/valki-talki.js" defer></script>
+    <link rel="stylesheet" href="/dist/vichat-widget.css" />
+    <script src="/dist/vichat-widget.min.js"></script>
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        if (window.ViChat?.mount) {
+          window.__VICHAT_WIDGET__ = window.ViChat.mount({
+            theme: 'valki',
+            baseUrl: window.__VALKI_BASE_URL__ || 'https://auth.valki.wiki'
+          });
+        }
+      });
+    </script>
   </body>
 </html>

@@ -8,6 +8,7 @@
       content="default-src 'self'; script-src 'self' https://auth.valki.wiki; style-src 'self' https://auth.valki.wiki; img-src 'self' https://auth.valki.wiki data:; connect-src 'self' https://auth.valki.wiki; frame-ancestors 'none'; base-uri 'none'; object-src 'none';"
     />
     <title>Valki Talki Strict CSP</title>
+    <link rel="stylesheet" href="../dist/vichat-widget.css" />
     <style>
       body {
         font-family: system-ui, sans-serif;
@@ -17,7 +18,17 @@
         color: #fff;
       }
     </style>
-    <script defer src="../widget/valki-talki.js"></script>
+    <script src="../dist/vichat-widget.min.js"></script>
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        if (window.ViChat?.mount) {
+          window.__VICHAT_WIDGET__ = window.ViChat.mount({
+            theme: 'valki',
+            baseUrl: 'https://auth.valki.wiki'
+          });
+        }
+      });
+    </script>
   </head>
   <body>
     <h1>Strict CSP Test</h1>

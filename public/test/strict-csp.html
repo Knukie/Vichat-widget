@@ -7,13 +7,19 @@
       content="default-src 'self'; script-src 'self' 'nonce-valki-test-inline'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://auth.valki.wiki; frame-ancestors 'none'"
     />
     <title>Valki Talki Strict CSP Test</title>
-    <link rel="stylesheet" href="/widget/valki-talki.css" />
+    <link rel="stylesheet" href="/dist/vichat-widget.css" />
     <script nonce="valki-test-inline">
       window.__VALKI_TEST_HOOKS__ = { securitySmoke: true };
     </script>
   </head>
   <body>
-    <valki-talki-widget></valki-talki-widget>
-    <script src="/widget/valki-talki.js" defer></script>
+    <script src="/dist/vichat-widget.min.js"></script>
+    <script nonce="valki-test-inline">
+      window.addEventListener('DOMContentLoaded', () => {
+        if (window.ViChat?.mount) {
+          window.__VICHAT_WIDGET__ = window.ViChat.mount({ theme: 'valki' });
+        }
+      });
+    </script>
   </body>
 </html>

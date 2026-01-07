@@ -16,18 +16,15 @@ test('step6 overlay open/close with escape', async ({ page }) => {
   await maybeRouteBuildAssets(page);
   await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
 
-  const widget = page.locator('valki-talki-widget');
-  await expect(widget).toHaveCount(1);
-
-  const badge = widget.locator('>>> .badge');
+  const badge = page.locator('#valki-bubble');
   await expect(badge).toBeVisible();
   await badge.click();
 
-  const overlay = widget.locator('>>> .overlay');
-  await expect(overlay).toHaveClass(/open/);
+  const overlay = page.locator('#valki-overlay');
+  await expect(overlay).toHaveClass(/is-visible/);
 
   await page.keyboard.press('Escape');
-  await expect(overlay).not.toHaveClass(/open/);
+  await expect(overlay).not.toHaveClass(/is-visible/);
 
   await page.screenshot({ path: 'step6-open-close.png', fullPage: true });
 });
@@ -37,19 +34,16 @@ test('step6 text chat flow', async ({ page }) => {
   await maybeRouteBuildAssets(page);
   await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
 
-  const widget = page.locator('valki-talki-widget');
-  await expect(widget).toHaveCount(1);
-
-  const badge = widget.locator('>>> .badge');
+  const badge = page.locator('#valki-bubble');
   await expect(badge).toBeVisible();
   await badge.click();
 
-  const input = widget.locator('>>> .chat-input');
+  const input = page.locator('#valki-chat-input');
   await expect(input).toBeVisible();
   await input.fill('Hello from step 6');
   await input.press('Enter');
 
-  const botMessages = widget.locator('>>> .message-row.bot .bubble').filter({ hasText: /\S+/ });
+  const botMessages = page.locator('.valki-msg-row.bot .valki-msg-bubble').filter({ hasText: /\S+/ });
   await expect(botMessages.first()).toBeVisible({ timeout: 30_000 });
 
   await page.screenshot({ path: 'step6-text.png', fullPage: true });
@@ -60,51 +54,51 @@ test('step6 attachments flow', async ({ page }) => {
   await maybeRouteBuildAssets(page);
   await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
 
-  const widget = page.locator('valki-talki-widget');
-  await expect(widget).toHaveCount(1);
-
-  const badge = widget.locator('>>> .badge');
+  const badge = page.locator('#valki-bubble');
   await expect(badge).toBeVisible();
   await badge.click();
 
-  const fileInput = widget.locator('>>> .file-input');
+  const fileInput = page.locator('#valki-file-input');
   await expect(fileInput).toHaveCount(1);
   await fileInput.setInputFiles(samplePath);
 
-  const trayImage = widget.locator('>>> .attachments-tray img');
+  const trayImage = page.locator('#valki-attachments .valki-attachment img');
   await expect(trayImage.first()).toBeVisible({ timeout: 30_000 });
 
-  const sendButton = widget.locator('>>> .send');
+  const input = page.locator('#valki-chat-input');
+  await expect(input).toBeVisible();
+  await input.fill('Attachment flow');
+
+  const sendButton = page.locator('#valki-chat-send');
   await expect(sendButton).toBeVisible();
   await expect(sendButton).toBeEnabled({ timeout: 30_000 });
   await sendButton.click();
 
-  const userImage = widget.locator('>>> .message-row.user img');
-  await expect(userImage.first()).toBeVisible({ timeout: 30_000 });
+  const userMessage = page
+    .locator('.valki-msg-row.user .valki-msg-bubble')
+    .filter({ hasText: 'Attachment flow' });
+  await expect(userMessage.first()).toBeVisible({ timeout: 30_000 });
 
   await page.screenshot({ path: 'step6-attach.png', fullPage: true });
 });
 
 test('step6 guest hard block disables composer', async ({ page }) => {
   await page.addInitScript(() => {
-    window.__VALKI_TEST_GUEST_COUNT__ = 999;
+    localStorage.setItem('valki_guest_meter_v1', JSON.stringify({ count: 999, roundsShown: 2 }));
   });
 
   const pageUrl = new URL('/test/step6.html', baseUrl).toString();
   await maybeRouteBuildAssets(page);
   await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
 
-  const widget = page.locator('valki-talki-widget');
-  await expect(widget).toHaveCount(1);
-
-  const badge = widget.locator('>>> .badge');
+  const badge = page.locator('#valki-bubble');
   await expect(badge).toBeVisible();
   await badge.click();
 
-  const authOverlay = widget.locator('>>> .auth-overlay');
-  await expect(authOverlay).toHaveClass(/open/);
+  const authOverlay = page.locator('#valki-auth-overlay');
+  await expect(authOverlay).toHaveClass(/is-visible/);
 
-  const input = widget.locator('>>> .chat-input');
+  const input = page.locator('#valki-chat-input');
   await expect(input).toBeDisabled();
 
   await page.screenshot({ path: 'step6-guest-block.png', fullPage: true });
