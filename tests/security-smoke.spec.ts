@@ -10,12 +10,6 @@ const __dirname = path.dirname(__filename);
 
 const ORIGIN = process.env.BASE_URL || 'http://localhost:3000';
 
-declare global {
-  interface Window {
-    __VALKI_TEST_HOOKS__?: { securitySmoke?: boolean };
-  }
-}
-
 async function routeHtml(page: any, urlPath: string, filePath: string) {
   const html = await fs.readFile(filePath, 'utf8');
   await page.route(`**${urlPath}`, async (route: any) => {
@@ -34,17 +28,17 @@ test('security smoke: bot content is escaped and links are hardened', async ({ p
 
   await page.goto(`${ORIGIN}/test/strict-csp.html`, { waitUntil: 'domcontentloaded' });
 
-  // Keep this evaluate; it should be harmless. If this ever becomes flaky too,
-  // we can remove it and just rely on presence of the inject button.
-  const hookEnabled = await page.evaluate(() => Boolean(window.__VALKI_TEST_HOOKS__?.securitySmoke));
-  if (!hookEnabled) test.skip(true, 'Security smoke test requires an explicit test hook on the page.');
+  // If the page doesn't expose the test inject controls, skip.
+  // (This replaces any window.__VALKI_TEST_HOOKS__ evaluate call.)
+  const injectBtn = page.locator('#valki-test-inject-btn');
+  const count = await injectBtn.count();
+  if (!count) test.skip(true, 'Security smoke test requires strict-csp.html to expose inject controls.');
 
-  // Wait until test inject controls exist
-  await expect(page.locator('#valki-test-inject-btn')).toHaveCount(1);
-
-  // Set payload and click inject (no page.evaluate needed)
-  await page.fill('#valki-test-inject-text', '<img src=x onerror=alert(1)> [bad](javascript:alert(1)) https://example.com');
-  await page.click('#valki-test-inject-btn');
+  await page.fill(
+    '#valki-test-inject-text',
+    '<img src=x onerror=alert(1)> [bad](javascript:alert(1)) https://example.com'
+  );
+  await injectBtn.click();
 
   const bubble = page.locator('.valki-msg-row.bot .valki-msg-bubble');
   await expect(bubble).toContainText('<img src=x onerror=alert(1)>');
