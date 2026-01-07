@@ -30,8 +30,8 @@ jobs:
       - name: Unit tests (if present)
         run: npm run test --if-present
 
-      - name: Install Playwright browsers
-        run: npx playwright install chromium
+      - name: Install Playwright browsers (with deps)
+        run: npx playwright install --with-deps chromium
 
       - name: E2E tests (smoke)
         run: npm run test:e2e:smoke
