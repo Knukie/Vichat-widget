@@ -25,8 +25,8 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Install Playwright browsers
-        run: npx playwright install chromium
+      - name: Install Playwright browsers (with deps)
+        run: npx playwright install --with-deps chromium
 
       - name: E2E tests (full)
         continue-on-error: true
