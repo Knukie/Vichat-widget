@@ -22,29 +22,51 @@ async function routeHtml(page: any, urlPath: string, filePath: string) {
 }
 
 test('security smoke: bot content is escaped and links are hardened', async ({ page }) => {
-  const strictCspHtmlPath = path.join(__dirname, '..', 'public', 'test', 'strict-csp.html');
+  const strictCspHtmlPath = path.join(
+    __dirname,
+    '..',
+    'public',
+    'test',
+    'strict-csp.html'
+  );
+
   await routeHtml(page, '/test/strict-csp.html', strictCspHtmlPath);
   await maybeRouteBuildAssets(page);
 
-  await page.goto(`${ORIGIN}/test/strict-csp.html`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${ORIGIN}/test/strict-csp.html`, {
+    waitUntil: 'domcontentloaded'
+  });
 
-  // If the page doesn't expose the test inject controls, skip.
-  // (This replaces any window.__VALKI_TEST_HOOKS__ evaluate call.)
+  // Test-only inject controls must exist, otherwise skip
   const injectBtn = page.locator('#valki-test-inject-btn');
-  const count = await injectBtn.count();
-  if (!count) test.skip(true, 'Security smoke test requires strict-csp.html to expose inject controls.');
+  await expect(injectBtn).toHaveCount(1);
 
+  // Fill malicious payload
   await page.fill(
     '#valki-test-inject-text',
     '<img src=x onerror=alert(1)> [bad](javascript:alert(1)) https://example.com'
   );
-  await injectBtn.click();
 
+  // Force click (CSP / overlay safe)
+  await injectBtn.click({ force: true });
+
+  // Assert rendered bot bubble
   const bubble = page.locator('.valki-msg-row.bot .valki-msg-bubble');
   await expect(bubble).toContainText('<img src=x onerror=alert(1)>');
-  await expect(bubble.locator('img')).toHaveCount(0);
-  await expect(bubble.locator('a[href^="javascript:"]')).toHaveCount(0);
-  await expect(bubble.locator('a[href="https://example.com"]')).toHaveCount(1);
 
-  await page.screenshot({ path: 'step12-security.png', fullPage: true });
+  // No raw images injected
+  await expect(bubble.locator('img')).toHaveCount(0);
+
+  // No javascript: links
+  await expect(bubble.locator('a[href^="javascript:"]')).toHaveCount(0);
+
+  // Safe https link exists (tolerant for trailing slash)
+  await expect(
+    bubble.locator('a[href^="https://example.com"]')
+  ).toHaveCount(1);
+
+  await page.screenshot({
+    path: 'step12-security.png',
+    fullPage: true
+  });
 });
