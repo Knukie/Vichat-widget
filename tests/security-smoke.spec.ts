@@ -46,6 +46,15 @@ test('security smoke: bot content is escaped and links are hardened', async ({ p
   const hookEnabled = await page.evaluate(() => Boolean(window.__VALKI_TEST_HOOKS__?.securitySmoke));
   if (!hookEnabled) test.skip(true, 'Security smoke test requires an explicit test hook on the page.');
 
+  // Wait until the widget is mounted and the messageController is ready
+  await page.waitForFunction(
+    () => {
+      const w = (window as any).__VICHAT_WIDGET__;
+      return Boolean(w && w.messageController);
+    },
+    { timeout: 15000 }
+  );
+
   await injectBotMessage(page, '<img src=x onerror=alert(1)> [bad](javascript:alert(1)) https://example.com');
 
   const bubble = page.locator('.valki-msg-row.bot .valki-msg-bubble');
