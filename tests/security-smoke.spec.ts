@@ -13,6 +13,7 @@ const ORIGIN = process.env.BASE_URL || 'http://localhost:3000';
 declare global {
   interface Window {
     __VALKI_TEST_HOOKS__?: { securitySmoke?: boolean };
+    __VALKI_INJECT_BOT__?: (text: string) => Promise<void> | void;
   }
 }
 
@@ -27,12 +28,15 @@ async function routeHtml(page: any, urlPath: string, filePath: string) {
   });
 }
 
-// Minimal injection helper (only runs when hook is enabled on the test page)
+// CSP-safe injection helper (requires strict-csp.html to define window.__VALKI_INJECT_BOT__)
 async function injectBotMessage(page: any, message: string) {
+  await page.waitForFunction(
+    () => typeof (window as any).__VALKI_INJECT_BOT__ === 'function',
+    { timeout: 15000 }
+  );
+
   await page.evaluate(async (text) => {
-    const widget = (window as any).__VICHAT_WIDGET__;
-    if (!widget || !widget.messageController) throw new Error('Widget not found');
-    await widget.messageController.addMessage({ type: 'bot', text });
+    await (window as any).__VALKI_INJECT_BOT__(text);
   }, message);
 }
 
@@ -46,7 +50,7 @@ test('security smoke: bot content is escaped and links are hardened', async ({ p
   const hookEnabled = await page.evaluate(() => Boolean(window.__VALKI_TEST_HOOKS__?.securitySmoke));
   if (!hookEnabled) test.skip(true, 'Security smoke test requires an explicit test hook on the page.');
 
-  // Wait until the widget is mounted and the messageController is ready
+  // Ensure widget is mounted and controller exists before injecting
   await page.waitForFunction(
     () => {
       const w = (window as any).__VICHAT_WIDGET__;
