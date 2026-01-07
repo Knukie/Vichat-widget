@@ -41,77 +41,88 @@ export const templateHtml = `<div class="valki-root" id="valki-root">
         <div class="valki-agent-empty" id="valki-agent-empty">No agents configured.</div>
       </div>
 
-      <!-- Header -->
-      <div class="valki-modal-header">
-        <div class="valki-modal-header-inner">
+      <!-- Sidebar -->
+      <aside class="valki-sidebar" id="valki-sidebar" aria-label="Chats" hidden>
+        <div class="valki-sidebar-header">
+          <div class="valki-sidebar-title">Chats</div>
+        </div>
+        <div class="valki-sidebar-list" id="valki-sidebar-list"></div>
+      </aside>
 
-          <div class="valki-header-left">
-            <button id="valki-agent-back" class="valki-agent-back" type="button" aria-label="Back to agents">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M15 18l-6-6 6-6"></path>
-              </svg>
-            </button>
-            <img class="valki-header-avatar" id="valki-header-avatar"
-                 src="https://valki.wiki/blogmedia/Valki%20Talki.jpg"
-                 alt="Valki avatar" />
-            <div class="valki-modal-title-text">
-              <span class="name" id="valki-title">Valki Talki</span>
-              <span class="session" id="valki-session-label">Guest 🟠</span>
+      <section class="valki-chat-pane" id="valki-chat-pane">
+        <!-- Header -->
+        <div class="valki-modal-header">
+          <div class="valki-modal-header-inner">
+
+            <div class="valki-header-left">
+              <button id="valki-agent-back" class="valki-agent-back" type="button" aria-label="Back to agents">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M15 18l-6-6 6-6"></path>
+                </svg>
+              </button>
+              <img class="valki-header-avatar" id="valki-header-avatar"
+                   src="https://valki.wiki/blogmedia/Valki%20Talki.jpg"
+                   alt="Valki avatar" />
+              <div class="valki-modal-title-text">
+                <span class="name" id="valki-title">Valki Talki</span>
+                <span class="session" id="valki-session-label">Guest 🟠</span>
+              </div>
             </div>
-          </div>
 
-          <div class="valki-header-actions">
-            <button class="valki-pill primary" id="valki-loginout-btn" type="button" title="Login">Login</button>
-            <button class="valki-pill" id="valki-deleteall-btn" type="button" title="Delete all messages">Delete</button>
-            <button id="valki-close" class="valki-close-btn" type="button" aria-label="Close chat">✕</button>
-          </div>
+            <div class="valki-header-actions">
+              <button class="valki-pill primary" id="valki-loginout-btn" type="button" title="Login">Login</button>
+              <button class="valki-pill" id="valki-deleteall-btn" type="button" title="Delete all messages">Delete</button>
+              <button id="valki-close" class="valki-close-btn" type="button" aria-label="Close chat">✕</button>
+            </div>
 
+          </div>
         </div>
-      </div>
 
-      <!-- Messages -->
-      <div id="valki-messages" class="valki-messages" role="log" aria-live="polite">
-        <div class="valki-messages-inner" id="valki-messages-inner"></div>
-      </div>
-
-      <!-- Composer -->
-      <form id="valki-chat-form" class="valki-chat-form" autocomplete="off">
-        <div class="valki-chat-form-inner">
-
-          <div class="valki-chat-inner">
-            <button class="valki-chat-attach" id="valki-chat-attach" type="button" aria-label="Upload image">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.9-9.9a4 4 0 015.66 5.66l-9.9 9.9a2 2 0 01-2.83-2.83l9.19-9.19"></path>
-              </svg>
-            </button>
-
-            <input id="valki-file-input" type="file" accept="image/jpeg,image/png" multiple style="display:none" />
-
-            <textarea id="valki-chat-input" class="valki-chat-input" rows="1"
-                      placeholder=""
-                      aria-label="Message Valki"
-                      enterkeyhint="send"></textarea>
-
-            <button class="valki-chat-send" id="valki-chat-send" type="submit" aria-label="Send message">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 19V5"></path>
-                <path d="M5 12l7-7 7 7"></path>
-              </svg>
-            </button>
-          </div>
-
-          <div class="valki-attachments" id="valki-attachments" aria-label="Attachments" style="display:none;"></div>
-
-          <div class="valki-disclaimer">
-            <div>Valki signals may distort. Verify info.</div>
-            <button type="button" class="valki-disclaimer-button"
-                    onclick="if (typeof displayPreferenceModal === 'function') { displayPreferenceModal(); }">
-              See cookie preferences.
-            </button>
-          </div>
-
+        <!-- Messages -->
+        <div id="valki-messages" class="valki-messages" role="log" aria-live="polite">
+          <div class="valki-messages-inner" id="valki-messages-inner"></div>
         </div>
-      </form>
+
+        <!-- Composer -->
+        <form id="valki-chat-form" class="valki-chat-form" autocomplete="off">
+          <div class="valki-chat-form-inner">
+
+            <div class="valki-chat-inner">
+              <button class="valki-chat-attach" id="valki-chat-attach" type="button" aria-label="Upload image">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.9-9.9a4 4 0 015.66 5.66l-9.9 9.9a2 2 0 01-2.83-2.83l9.19-9.19"></path>
+                </svg>
+              </button>
+
+              <input id="valki-file-input" type="file" accept="image/jpeg,image/png" multiple style="display:none" />
+
+              <textarea id="valki-chat-input" class="valki-chat-input" rows="1"
+                        placeholder=""
+                        aria-label="Message Valki"
+                        enterkeyhint="send"></textarea>
+
+              <button class="valki-chat-send" id="valki-chat-send" type="submit" aria-label="Send message">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 19V5"></path>
+                  <path d="M5 12l7-7 7 7"></path>
+                </svg>
+              </button>
+            </div>
+
+            <div class="valki-attachments" id="valki-attachments" aria-label="Attachments" style="display:none;"></div>
+
+            <div class="valki-disclaimer">
+              <div>Valki signals may distort. Verify info.</div>
+              <button type="button" class="valki-disclaimer-button"
+                      onclick="if (typeof displayPreferenceModal === 'function') { displayPreferenceModal(); }">
+                See cookie preferences.
+              </button>
+            </div>
+
+          </div>
+        </div>
+        </form>
+      </section>
 
     </div>
   </div>

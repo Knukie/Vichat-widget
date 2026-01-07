@@ -737,9 +737,103 @@ html.valki-chat-open #valki-root .valki-bubble{
   font-size: 13px;
 }
 
-#valki-root #valki-overlay[data-view="agent-hub"] .valki-modal-header,
-#valki-root #valki-overlay[data-view="agent-hub"] .valki-messages,
-#valki-root #valki-overlay[data-view="agent-hub"] .valki-chat-form{
+/* =========================================================
+   Sidebar + Chat Pane
+========================================================= */
+#valki-root .valki-sidebar{
+  display:none;
+  flex-direction:column;
+  min-height:0;
+  background: rgba(8,8,8,.7);
+  border-right: 1px solid rgba(255,255,255,.10);
+  overflow:hidden;
+}
+
+#valki-root .valki-sidebar[hidden]{
+  display:none !important;
+}
+
+#valki-root .valki-sidebar-header{
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.2);
+}
+
+#valki-root .valki-sidebar-title{
+  font-size: 16px;
+  font-weight: 720;
+}
+
+#valki-root .valki-sidebar-list{
+  flex:1 1 auto;
+  overflow-y:auto;
+}
+
+#valki-root .valki-sidebar-item{
+  width: 100%;
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  padding: 12px 18px;
+  text-align:left;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  transition: background .16s ease;
+}
+
+#valki-root .valki-sidebar-item:hover{
+  background: rgba(255,255,255,.05);
+}
+
+#valki-root .valki-sidebar-item.is-active{
+  background: rgba(241,90,36,.14);
+  box-shadow: inset 2px 0 0 rgba(241,90,36,.7);
+}
+
+#valki-root .valki-sidebar-avatar{
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.05);
+  flex:0 0 auto;
+}
+
+#valki-root .valki-sidebar-content{
+  flex:1 1 auto;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap: 4px;
+}
+
+#valki-root .valki-sidebar-name{
+  font-size: 14px;
+  font-weight: 650;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+#valki-root .valki-sidebar-subtitle{
+  font-size: 12px;
+  color: var(--muted);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+#valki-root .valki-chat-pane{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  flex:1 1 auto;
+}
+
+#valki-root #valki-overlay[data-view="chat"] .valki-chat-pane{
+  display:flex;
+}
+
+#valki-root #valki-overlay[data-view="agent-hub"] .valki-chat-pane{
   display:none !important;
 }
 
@@ -755,9 +849,9 @@ html.valki-chat-open #valki-root .valki-bubble{
    STRONG CHAT BLOCK (FINAL)
    - Makes header/messages/composer read like ONE block
 ========================================================= */
-#valki-root .valki-modal > .valki-modal-header,
-#valki-root .valki-modal > .valki-messages,
-#valki-root .valki-modal > .valki-chat-form{
+#valki-root .valki-chat-pane > .valki-modal-header,
+#valki-root .valki-chat-pane > .valki-messages,
+#valki-root .valki-chat-pane > .valki-chat-form{
   background: var(--chat-block-bg);
   backdrop-filter: blur(var(--chat-block-blur));
   -webkit-backdrop-filter: blur(var(--chat-block-blur));
@@ -766,20 +860,20 @@ html.valki-chat-open #valki-root .valki-bubble{
   border-right: 1px solid var(--chat-block-border);
 }
 
-#valki-root .valki-modal > .valki-modal-header{
+#valki-root .valki-chat-pane > .valki-modal-header{
   border-top: 1px solid rgba(255,255,255,.12);
 }
 
-#valki-root .valki-modal > .valki-chat-form{
+#valki-root .valki-chat-pane > .valki-chat-form{
   border-bottom: 1px solid rgba(255,255,255,.12);
 }
 
 /* Small highlights for depth */
-#valki-root .valki-modal > .valki-modal-header,
-#valki-root .valki-modal > .valki-chat-form{
+#valki-root .valki-chat-pane > .valki-modal-header,
+#valki-root .valki-chat-pane > .valki-chat-form{
   position: relative;
 }
-#valki-root .valki-modal > .valki-modal-header::after{
+#valki-root .valki-chat-pane > .valki-modal-header::after{
   content:"";
   position:absolute;
   left:0; right:0; bottom:0;
@@ -787,7 +881,7 @@ html.valki-chat-open #valki-root .valki-bubble{
   background: rgba(255,255,255,.06);
   pointer-events:none;
 }
-#valki-root .valki-modal > .valki-chat-form::before{
+#valki-root .valki-chat-pane > .valki-chat-form::before{
   content:"";
   position:absolute;
   left:0; right:0; top:0;
@@ -1169,6 +1263,31 @@ html.valki-chat-open #valki-root .valki-messages{
   scroll-padding-bottom: calc(var(--composer-h, 110px) + env(safe-area-inset-bottom) + 2px);
 }
 
+@media (min-width: 1024px){
+  #valki-root .valki-modal{
+    width: min(1100px, calc(100vw - 48px));
+    height: min(720px, calc(var(--valki-vh) * 100 - 48px));
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    overflow: hidden;
+  }
+
+  #valki-root #valki-sidebar{
+    display: flex;
+    flex-direction: column;
+  }
+
+  #valki-root #valki-chat-pane{
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-width: 0;
+  }
+
+  #valki-root #valki-messages{
+    overflow: auto;
+  }
+}
+
 /* Mobile tweaks + disable vignette/blur */
 @media (max-width:640px){
   #valki-root{
@@ -1185,9 +1304,9 @@ html.valki-chat-open #valki-root .valki-messages{
     display:none;
   }
 
-  #valki-root .valki-modal > .valki-modal-header,
-  #valki-root .valki-modal > .valki-messages,
-  #valki-root .valki-modal > .valki-chat-form{
+  #valki-root .valki-chat-pane > .valki-modal-header,
+  #valki-root .valki-chat-pane > .valki-messages,
+  #valki-root .valki-chat-pane > .valki-chat-form{
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     border-left: none;

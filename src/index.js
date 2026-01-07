@@ -16,6 +16,7 @@ import { DEFAULT_AGENTS, findAgentById, normalizeAgents } from './core/agents.js
 import { createAttachmentController } from './core/attachments.js';
 import { createGuestMeter } from './core/guestMeter.js';
 import { createAgentHubController } from './core/ui/agentHub.js';
+import { createSidebarController } from './core/ui/sidebar.js';
 import { createMessageController } from './core/ui/messages.js';
 import { createComposerController } from './core/ui/composer.js';
 import { createOverlayController, setVisible } from './core/ui/overlay.js';
@@ -35,6 +36,9 @@ const REQUIRED_IDS = [
   'valki-agent-list',
   'valki-agent-empty',
   'valki-agent-close',
+  'valki-sidebar',
+  'valki-sidebar-list',
+  'valki-chat-pane',
   'valki-agent-back',
   'valki-close',
   'valki-header-avatar',
@@ -65,6 +69,10 @@ const REQUIRED_IDS = [
   'valki-logout-no',
   'valki-logout-yes'
 ];
+
+function isDesktopLayout() {
+  return window.matchMedia && window.matchMedia('(min-width: 1024px)').matches;
+}
 
 function ensureStyle(theme) {
   const styleId = `vichat-theme-${theme.name}`;
@@ -154,6 +162,7 @@ class ViChatWidget {
     this.composerController = null;
     this.overlayController = null;
     this.agentHubController = null;
+    this.sidebarController = null;
     this.guestMeter = null;
     this.authController = null;
     this._layoutRaf = 0;
@@ -235,6 +244,11 @@ class ViChatWidget {
       hubEl: el['valki-agent-hub'],
       listEl: el['valki-agent-list'],
       emptyEl: el['valki-agent-empty'],
+      onSelect: (agentId) => this.selectAgent(agentId)
+    });
+
+    this.sidebarController = createSidebarController({
+      listEl: el['valki-sidebar-list'],
       onSelect: (agentId) => this.selectAgent(agentId)
     });
 
@@ -342,6 +356,16 @@ class ViChatWidget {
       () => {
         scheduleLayoutMetrics();
         this.messageController.scrollToBottom(false);
+        if (isDesktopLayout()) {
+          el['valki-sidebar'].hidden = false;
+          this.sidebarController?.renderAgents(this.agents, this.currentAgentId);
+          if (this.view === 'agent-hub') {
+            el['valki-overlay'].dataset.view = 'chat';
+          }
+        } else {
+          el['valki-sidebar'].hidden = true;
+        }
+        this.setView(this.view);
       },
       { passive: true }
     );
@@ -398,13 +422,15 @@ class ViChatWidget {
   }
 
   setView(view) {
+    const desktop = isDesktopLayout();
+    const effectiveView = desktop && view === 'agent-hub' ? 'chat' : view;
     this.view = view;
     if (this.elements?.['valki-overlay']) {
-      this.elements['valki-overlay'].dataset.view = view;
+      this.elements['valki-overlay'].dataset.view = effectiveView;
     }
     const backBtn = this.elements?.['valki-agent-back'];
     if (backBtn) {
-      backBtn.style.display = this.agents.length > 1 && view === 'chat' ? 'inline-flex' : 'none';
+      backBtn.style.display = !desktop && this.agents.length > 1 && effectiveView === 'chat' ? 'inline-flex' : 'none';
     }
   }
 
@@ -427,6 +453,11 @@ class ViChatWidget {
   }
 
   showAgentHub() {
+    if (isDesktopLayout()) {
+      this.elements['valki-sidebar'].hidden = false;
+      this.sidebarController?.renderAgents(this.agents, this.currentAgentId);
+      return;
+    }
     this.setView('agent-hub');
     this.applyAgentToHeader(null);
     this.agentHubController?.renderAgents(this.agents);
@@ -439,6 +470,10 @@ class ViChatWidget {
     this.currentAgentId = agent.id;
     this.setView('chat');
     this.applyAgentToHeader(agent);
+    this.sidebarController?.renderAgents(this.agents, this.currentAgentId);
+    if (isDesktopLayout()) {
+      this.elements['valki-sidebar'].hidden = false;
+    }
     await this.loadMessagesForCurrentAgent({ forceOpen: true });
   }
 
@@ -747,8 +782,8 @@ class ViChatWidget {
     markBubbleSeen(this.config);
     this.hideBubbleBadge();
     this.setView(this.view);
-
-    if (this.view === 'agent-hub') {
+    const effectiveView = isDesktopLayout() && this.view === 'agent-hub' ? 'chat' : this.view;
+    if (effectiveView === 'agent-hub') {
       this.overlayController.openOverlay();
       this.agentHubController?.renderAgents(this.agents);
       return;
@@ -772,13 +807,28 @@ class ViChatWidget {
 
     this.resolveInitialAgentState();
     this.setView(this.view);
-    this.agentHubController?.renderAgents(this.agents);
-    this.applyAgentToHeader(findAgentById(this.agents, this.currentAgentId));
-
-    if (this.view === 'chat') {
-      await this.loadMessagesForCurrentAgent({ forceOpen: false });
+    const desktop = isDesktopLayout();
+    if (desktop) {
+      this.elements['valki-sidebar'].hidden = false;
+      if (!this.currentAgentId && this.agents.length) {
+        await this.selectAgent(this.agents[0].id);
+      } else {
+        this.sidebarController?.renderAgents(this.agents, this.currentAgentId);
+        this.applyAgentToHeader(findAgentById(this.agents, this.currentAgentId));
+        if (this.view === 'chat') {
+          await this.loadMessagesForCurrentAgent({ forceOpen: false });
+        } else {
+          this.messageController.clearMessagesUI();
+        }
+      }
     } else {
-      this.messageController.clearMessagesUI();
+      this.agentHubController?.renderAgents(this.agents);
+      this.applyAgentToHeader(findAgentById(this.agents, this.currentAgentId));
+      if (this.view === 'chat') {
+        await this.loadMessagesForCurrentAgent({ forceOpen: false });
+      } else {
+        this.messageController.clearMessagesUI();
+      }
     }
 
     this.updateDeleteButtonVisibility();
