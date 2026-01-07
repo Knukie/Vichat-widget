@@ -28,11 +28,9 @@
       /* test-only controls: keep inside viewport, but invisible */
       #valki-test-inject-wrap {
         position: fixed;
-        right: 8px;
+        left: 8px;
         bottom: 8px;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
+        z-index: 2147483647;
         opacity: 0;
         pointer-events: auto;
       }
