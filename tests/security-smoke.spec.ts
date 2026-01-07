@@ -13,7 +13,6 @@ const ORIGIN = process.env.BASE_URL || 'http://localhost:3000';
 declare global {
   interface Window {
     __VALKI_TEST_HOOKS__?: { securitySmoke?: boolean };
-    __VALKI_INJECT_BOT__?: (text: string) => Promise<void> | void;
   }
 }
 
@@ -28,18 +27,6 @@ async function routeHtml(page: any, urlPath: string, filePath: string) {
   });
 }
 
-// CSP-safe injection helper (requires strict-csp.html to define window.__VALKI_INJECT_BOT__)
-async function injectBotMessage(page: any, message: string) {
-  await page.waitForFunction(
-    () => typeof (window as any).__VALKI_INJECT_BOT__ === 'function',
-    { timeout: 15000 }
-  );
-
-  await page.evaluate(async (text) => {
-    await (window as any).__VALKI_INJECT_BOT__(text);
-  }, message);
-}
-
 test('security smoke: bot content is escaped and links are hardened', async ({ page }) => {
   const strictCspHtmlPath = path.join(__dirname, '..', 'public', 'test', 'strict-csp.html');
   await routeHtml(page, '/test/strict-csp.html', strictCspHtmlPath);
@@ -47,19 +34,17 @@ test('security smoke: bot content is escaped and links are hardened', async ({ p
 
   await page.goto(`${ORIGIN}/test/strict-csp.html`, { waitUntil: 'domcontentloaded' });
 
+  // Keep this evaluate; it should be harmless. If this ever becomes flaky too,
+  // we can remove it and just rely on presence of the inject button.
   const hookEnabled = await page.evaluate(() => Boolean(window.__VALKI_TEST_HOOKS__?.securitySmoke));
   if (!hookEnabled) test.skip(true, 'Security smoke test requires an explicit test hook on the page.');
 
-  // Ensure widget is mounted and controller exists before injecting
-  await page.waitForFunction(
-    () => {
-      const w = (window as any).__VICHAT_WIDGET__;
-      return Boolean(w && w.messageController);
-    },
-    { timeout: 15000 }
-  );
+  // Wait until test inject controls exist
+  await expect(page.locator('#valki-test-inject-btn')).toHaveCount(1);
 
-  await injectBotMessage(page, '<img src=x onerror=alert(1)> [bad](javascript:alert(1)) https://example.com');
+  // Set payload and click inject (no page.evaluate needed)
+  await page.fill('#valki-test-inject-text', '<img src=x onerror=alert(1)> [bad](javascript:alert(1)) https://example.com');
+  await page.click('#valki-test-inject-btn');
 
   const bubble = page.locator('.valki-msg-row.bot .valki-msg-bubble');
   await expect(bubble).toContainText('<img src=x onerror=alert(1)>');
