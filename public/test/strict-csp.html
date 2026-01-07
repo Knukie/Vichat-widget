@@ -25,14 +25,16 @@
         background: #0b0b0b;
         color: #fff;
       }
-      /* hidden test-only controls */
+      /* test-only controls: keep inside viewport, but invisible */
       #valki-test-inject-wrap {
         position: fixed;
-        left: -9999px;
-        top: -9999px;
+        right: 8px;
+        bottom: 8px;
         width: 1px;
         height: 1px;
         overflow: hidden;
+        opacity: 0;
+        pointer-events: auto;
       }
     </style>
 
