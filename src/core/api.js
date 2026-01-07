@@ -10,10 +10,19 @@ export async function fetchMe({ token, config }) {
   return null;
 }
 
-export async function fetchMessages({ token, config }) {
+function withAgentParam(url, agentId) {
+  if (!agentId) return url;
+  const next = new URL(url, window.location.href);
+  next.searchParams.set('agentId', agentId);
+  return next.toString();
+}
+
+export async function fetchMessages({ token, config, agentId }) {
   if (!token) return { ok: false, messages: [] };
   try {
-    const res = await fetch(config.apiMessages, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch(withAgentParam(config.apiMessages, agentId), {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     if (!res.ok) return { ok: false, messages: [] };
     const data = await res.json().catch(() => null);
     if (!data || !Array.isArray(data.messages)) return { ok: true, messages: [] };
@@ -29,19 +38,23 @@ export async function fetchMessages({ token, config }) {
   }
 }
 
-export async function clearMessages({ token, config }) {
+export async function clearMessages({ token, config, agentId }) {
   if (!token) return false;
   try {
-    const res = await fetch(config.apiClear, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch(withAgentParam(config.apiClear, agentId), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return res.ok;
   } catch {
     return false;
   }
 }
 
-export async function importGuestMessages({ token, guestHistory, config }) {
+export async function importGuestMessages({ token, guestHistory, config, agentId }) {
   if (!token || !Array.isArray(guestHistory) || !guestHistory.length) return;
   const payload = {
+    agentId,
     messages: guestHistory.slice(-80).map((m) => ({
       role: m.type === 'bot' ? 'assistant' : 'user',
       content: String(m.text || '')
@@ -59,8 +72,8 @@ export async function importGuestMessages({ token, guestHistory, config }) {
   }
 }
 
-export async function askValki({ message, clientId, images, token, config }) {
-  const payload = { message, clientId, images };
+export async function askValki({ message, clientId, images, token, config, agentId }) {
+  const payload = { message, clientId, images, agentId };
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
 

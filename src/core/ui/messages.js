@@ -12,6 +12,9 @@ export function createMessageController({
   avatarUrl,
   updateDeleteButtonVisibility
 }) {
+  let botAvatarUrl = avatarUrl;
+  let botAvatarAlt = 'Valki icon';
+
   function scrollToBottom(force = false) {
     if (!messagesEl) return;
     if (force || isNearBottom(messagesEl)) {
@@ -36,8 +39,8 @@ export function createMessageController({
       avatarWrap.className = 'valki-bot-avatar-wrap';
       const avatar = document.createElement('img');
       avatar.className = 'valki-bot-avatar';
-      avatar.src = avatarUrl;
-      avatar.alt = 'Valki icon';
+      avatar.src = botAvatarUrl;
+      avatar.alt = botAvatarAlt;
       avatarWrap.appendChild(avatar);
       row.appendChild(avatarWrap);
     }
@@ -69,8 +72,8 @@ export function createMessageController({
     avatarWrap.className = 'valki-bot-avatar-wrap';
     const avatar = document.createElement('img');
     avatar.className = 'valki-bot-avatar';
-    avatar.src = avatarUrl;
-    avatar.alt = 'Valki icon';
+    avatar.src = botAvatarUrl;
+    avatar.alt = botAvatarAlt;
     avatarWrap.appendChild(avatar);
     typingRow.appendChild(avatarWrap);
 
@@ -109,11 +112,17 @@ export function createMessageController({
     });
   }
 
+  function setAgentMeta({ avatarUrl: nextAvatar, name }) {
+    if (nextAvatar) botAvatarUrl = nextAvatar;
+    botAvatarAlt = name ? `${name} icon` : 'Valki icon';
+  }
+
   return {
     addMessage,
     clearMessagesUI,
     createTypingRow,
     hasAnyRealMessages,
+    setAgentMeta,
     scrollToBottom,
     scrollToBottomHard
   };

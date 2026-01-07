@@ -550,6 +550,17 @@ html.valki-chat-open #valki-root .valki-bubble{
 
 #valki-root .valki-header-left{ display:flex; align-items:center; gap: 10px; min-width:0; }
 
+#valki-root .valki-agent-back{
+  width:30px;height:30px;
+  border-radius:50%;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  color: rgba(255,255,255,.9);
+}
+
 #valki-root .valki-header-avatar{
   width:30px;height:30px;border-radius:50%;
   border: 1px solid rgba(255,255,255,.18);
@@ -600,6 +611,144 @@ html.valki-chat-open #valki-root .valki-bubble{
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.04);
   display:flex;align-items:center;justify-content:center;
+}
+
+/* =========================================================
+   Agent Hub (WhatsApp-like list)
+========================================================= */
+#valki-root .valki-agent-hub{
+  display:none;
+  flex-direction:column;
+  min-height:0;
+  flex:1 1 auto;
+  background: var(--chat-block-bg);
+  backdrop-filter: blur(var(--chat-block-blur));
+  -webkit-backdrop-filter: blur(var(--chat-block-blur));
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+#valki-root .valki-agent-hub-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: calc(14px + env(safe-area-inset-top)) var(--gutter) 14px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  gap: 12px;
+}
+
+#valki-root .valki-agent-hub-title{
+  font-size: 18px;
+  font-weight: 720;
+}
+
+#valki-root .valki-agent-hub-subtitle{
+  font-size: 12px;
+  color: var(--muted-2);
+  margin-top: 2px;
+}
+
+#valki-root .valki-agent-list{
+  flex:1 1 auto;
+  overflow-y:auto;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+#valki-root .valki-agent-row{
+  width: 100%;
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  padding: 14px var(--gutter);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  text-align:left;
+  transition: background .16s ease;
+}
+
+#valki-root .valki-agent-row:hover{
+  background: rgba(255,255,255,.04);
+}
+
+#valki-root .valki-agent-avatar-wrap{
+  position:relative;
+  width:48px;
+  height:48px;
+  flex:0 0 auto;
+}
+
+#valki-root .valki-agent-avatar{
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.05);
+}
+
+#valki-root .valki-agent-status{
+  position:absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid rgba(8,8,8,.9);
+}
+
+#valki-root .valki-agent-status.online{ background: #22c55e; }
+#valki-root .valki-agent-status.away{ background: #f59e0b; }
+#valki-root .valki-agent-status.busy{ background: #ef4444; }
+#valki-root .valki-agent-status.offline{ background: rgba(255,255,255,.4); }
+
+#valki-root .valki-agent-content{
+  flex:1 1 auto;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap: 4px;
+}
+
+#valki-root .valki-agent-name{
+  font-size: 15px;
+  font-weight: 650;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+#valki-root .valki-agent-desc{
+  font-size: 12px;
+  color: var(--muted);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+#valki-root .valki-agent-meta{
+  font-size: 11px;
+  color: var(--muted-2);
+  text-transform: capitalize;
+}
+
+#valki-root .valki-agent-empty{
+  display:none;
+  padding: 24px var(--gutter);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+#valki-root #valki-overlay[data-view="agent-hub"] .valki-modal-header,
+#valki-root #valki-overlay[data-view="agent-hub"] .valki-messages,
+#valki-root #valki-overlay[data-view="agent-hub"] .valki-chat-form{
+  display:none !important;
+}
+
+#valki-root #valki-overlay[data-view="agent-hub"] .valki-agent-hub{
+  display:flex;
+}
+
+#valki-root #valki-overlay[data-view="chat"] .valki-agent-hub{
+  display:none;
 }
 
 /* =========================================================

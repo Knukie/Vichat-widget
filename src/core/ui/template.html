@@ -27,11 +27,29 @@
   <div id="valki-overlay" class="valki-overlay" aria-hidden="true">
     <div class="valki-modal" role="dialog" aria-modal="true" aria-labelledby="valki-title">
 
+      <!-- Agent Hub -->
+      <div class="valki-agent-hub" id="valki-agent-hub" role="region" aria-label="Agent Hub">
+        <div class="valki-agent-hub-header">
+          <div class="valki-agent-hub-titles">
+            <div class="valki-agent-hub-title" id="valki-agent-title">Agents</div>
+            <div class="valki-agent-hub-subtitle" id="valki-agent-subtitle">Choose an agent to start chatting.</div>
+          </div>
+          <button id="valki-agent-close" class="valki-close-btn" type="button" aria-label="Close agent hub">✕</button>
+        </div>
+        <div class="valki-agent-list" id="valki-agent-list"></div>
+        <div class="valki-agent-empty" id="valki-agent-empty">No agents configured.</div>
+      </div>
+
       <!-- Header -->
       <div class="valki-modal-header">
         <div class="valki-modal-header-inner">
 
           <div class="valki-header-left">
+            <button id="valki-agent-back" class="valki-agent-back" type="button" aria-label="Back to agents">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M15 18l-6-6 6-6"></path>
+              </svg>
+            </button>
             <img class="valki-header-avatar" id="valki-header-avatar"
                  src="https://valki.wiki/blogmedia/Valki%20Talki.jpg"
                  alt="Valki avatar" />
