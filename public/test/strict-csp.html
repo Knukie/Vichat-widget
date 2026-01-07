@@ -34,17 +34,26 @@
       window.__VICHAT_TEST_HOOKS__ = true;
     </script>
   </head>
+
   <body>
     <h1>Strict CSP Test</h1>
     <p>Use the Valki badge to open chat and send a message.</p>
 
     <script src="/dist/vichat-widget.min.js"></script>
+
     <script nonce="valki-test-inline">
       window.addEventListener('DOMContentLoaded', () => {
         window.ViChat?.mount?.({
           theme: 'valki',
           baseUrl: 'https://auth.valki.wiki'
         });
+
+        // CSP-safe injection hook for Playwright (security-smoke.spec.ts)
+        window.__VALKI_INJECT_BOT__ = async (text) => {
+          const widget = window.__VICHAT_WIDGET__;
+          if (!widget || !widget.messageController) throw new Error('Widget not ready');
+          await widget.messageController.addMessage({ type: 'bot', text });
+        };
       });
     </script>
   </body>
