@@ -10,14 +10,19 @@ function loadScript(src) {
 
 let markdownReady = false;
 let markdownLoading = null;
+let markdownFailed = false;
 
 export async function ensureMarkdownLibs() {
-  if (markdownReady) return;
+  if (markdownReady || markdownFailed) return;
   if (markdownLoading) return markdownLoading;
   markdownLoading = (async () => {
-    await loadScript('https://cdn.jsdelivr.net/npm/marked/marked.min.js');
-    await loadScript('https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js');
-    markdownReady = true;
+    try {
+      await loadScript('https://cdn.jsdelivr.net/npm/marked/marked.min.js');
+      await loadScript('https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js');
+      markdownReady = true;
+    } catch {
+      markdownFailed = true;
+    }
   })();
   return markdownLoading;
 }
