@@ -25,12 +25,19 @@
         background: #0b0b0b;
         color: #fff;
       }
+      /* hidden test-only controls */
+      #valki-test-inject-wrap {
+        position: fixed;
+        left: -9999px;
+        top: -9999px;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+      }
     </style>
 
     <script nonce="valki-test-inline">
-      // Security smoke test checks this flag:
       window.__VALKI_TEST_HOOKS__ = { securitySmoke: true };
-      // Enables the mount() hook to set window.__VICHAT_WIDGET__
       window.__VICHAT_TEST_HOOKS__ = true;
     </script>
   </head>
@@ -38,6 +45,12 @@
   <body>
     <h1>Strict CSP Test</h1>
     <p>Use the Valki badge to open chat and send a message.</p>
+
+    <!-- Test-only controls (CSP-safe, no Playwright evaluate needed) -->
+    <div id="valki-test-inject-wrap" aria-hidden="true">
+      <textarea id="valki-test-inject-text"></textarea>
+      <button id="valki-test-inject-btn" type="button">inject</button>
+    </div>
 
     <script src="/dist/vichat-widget.min.js"></script>
 
@@ -48,12 +61,18 @@
           baseUrl: 'https://auth.valki.wiki'
         });
 
-        // CSP-safe injection hook for Playwright (security-smoke.spec.ts)
-        window.__VALKI_INJECT_BOT__ = async (text) => {
+        const btn = document.getElementById('valki-test-inject-btn');
+        const input = document.getElementById('valki-test-inject-text');
+
+        btn?.addEventListener('click', async () => {
           const widget = window.__VICHAT_WIDGET__;
-          if (!widget || !widget.messageController) throw new Error('Widget not ready');
+          if (!widget || !widget.messageController) return;
+
+          const text = String(input?.value || '');
+          if (!text) return;
+
           await widget.messageController.addMessage({ type: 'bot', text });
-        };
+        });
       });
     </script>
   </body>
