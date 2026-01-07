@@ -33,8 +33,20 @@ test('strict csp chat flow', async ({ page }) => {
   await expect(badge).toBeVisible();
   await badge.click();
 
+  const agentHub = page.locator('#valki-agent-hub');
+  if (await agentHub.isVisible()) {
+    const firstAgent = page
+      .locator(
+        '#valki-agent-list button, #valki-agent-list [role="button"], #valki-agent-list .valki-agent-item, #valki-agent-list .valki-agent-card'
+      )
+      .first();
+    if (await firstAgent.isVisible()) {
+      await firstAgent.click();
+    }
+  }
+
   const input = page.locator('#valki-chat-input');
-  await expect(input).toBeVisible();
+  await expect(input).toBeVisible({ timeout: 15000 });
   await input.fill('hello');
   await input.press('Enter');
 

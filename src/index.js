@@ -75,6 +75,10 @@ function ensureStyle(theme) {
   document.head.appendChild(style);
 }
 
+function isDesktopLayout() {
+  return !!(window.matchMedia && window.matchMedia('(min-width: 1024px)').matches);
+}
+
 function mountTemplate(theme, target) {
   const existing = document.getElementById('valki-root');
   if (existing) {
@@ -398,13 +402,19 @@ class ViChatWidget {
   }
 
   setView(view) {
+    const desktop = isDesktopLayout();
+    const effectiveView = desktop && view === 'agent-hub' ? 'chat' : view;
     this.view = view;
     if (this.elements?.['valki-overlay']) {
-      this.elements['valki-overlay'].dataset.view = view;
+      this.elements['valki-overlay'].dataset.view = effectiveView;
     }
     const backBtn = this.elements?.['valki-agent-back'];
     if (backBtn) {
-      backBtn.style.display = this.agents.length > 1 && view === 'chat' ? 'inline-flex' : 'none';
+      if (desktop) {
+        backBtn.style.display = 'none';
+      } else {
+        backBtn.style.display = this.agents.length > 1 && view === 'chat' ? 'inline-flex' : 'none';
+      }
     }
   }
 
@@ -427,10 +437,32 @@ class ViChatWidget {
   }
 
   showAgentHub() {
+    if (isDesktopLayout()) {
+      this.setView('agent-hub');
+      this.agentHubController?.renderAgents(this.agents);
+      if (this.elements?.['valki-sidebar']) this.elements['valki-sidebar'].hidden = false;
+      return;
+    }
     this.setView('agent-hub');
     this.applyAgentToHeader(null);
     this.agentHubController?.renderAgents(this.agents);
     this.messageController?.clearMessagesUI();
+  }
+
+  async ensureDesktopAgentSelectedAndChatOpen() {
+    if (!isDesktopLayout()) return false;
+    if (this.elements?.['valki-sidebar']) this.elements['valki-sidebar'].hidden = false;
+    if (!this.agents.length) {
+      this.setView('chat');
+      return false;
+    }
+    if ((!this.currentAgentId || this.view === 'agent-hub') && this.agents.length) {
+      const firstId = this.currentAgentId || this.agents[0].id;
+      await this.selectAgent(firstId);
+      return true;
+    }
+    this.setView('chat');
+    return false;
   }
 
   async selectAgent(agentId) {
@@ -747,6 +779,9 @@ class ViChatWidget {
     markBubbleSeen(this.config);
     this.hideBubbleBadge();
     this.setView(this.view);
+
+    const handled = await this.ensureDesktopAgentSelectedAndChatOpen();
+    if (handled) return;
 
     if (this.view === 'agent-hub') {
       this.overlayController.openOverlay();
