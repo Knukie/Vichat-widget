@@ -54,8 +54,13 @@ export function clearAuthToken(config = DEFAULT_CONSTANTS) {
   removeLocalStorage(config.authKey);
 }
 
-export function loadGuestHistory(config = DEFAULT_CONSTANTS) {
-  const raw = readLocalStorage(config.historyKey);
+function resolveHistoryKey(config, agentId) {
+  if (!agentId) return config.historyKey;
+  return `${config.historyKey}:${agentId}`;
+}
+
+export function loadGuestHistory(config = DEFAULT_CONSTANTS, agentId) {
+  const raw = readLocalStorage(resolveHistoryKey(config, agentId));
   const arr = safeJsonParse(raw, []);
   if (!Array.isArray(arr)) return [];
   return arr.filter(
@@ -63,12 +68,12 @@ export function loadGuestHistory(config = DEFAULT_CONSTANTS) {
   );
 }
 
-export function saveGuestHistory(arr, config = DEFAULT_CONSTANTS) {
-  writeLocalStorage(config.historyKey, JSON.stringify(arr || []));
+export function saveGuestHistory(arr, config = DEFAULT_CONSTANTS, agentId) {
+  writeLocalStorage(resolveHistoryKey(config, agentId), JSON.stringify(arr || []));
 }
 
-export function clearGuestHistory(config = DEFAULT_CONSTANTS) {
-  removeLocalStorage(config.historyKey);
+export function clearGuestHistory(config = DEFAULT_CONSTANTS, agentId) {
+  removeLocalStorage(resolveHistoryKey(config, agentId));
 }
 
 export function getGuestMeter(config = DEFAULT_CONSTANTS) {

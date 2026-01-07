@@ -12,8 +12,10 @@ import {
   setAuthToken,
   shouldShowBubbleBadge
 } from './core/storage.js';
+import { DEFAULT_AGENTS, findAgentById, normalizeAgents } from './core/agents.js';
 import { createAttachmentController } from './core/attachments.js';
 import { createGuestMeter } from './core/guestMeter.js';
+import { createAgentHubController } from './core/ui/agentHub.js';
 import { createMessageController } from './core/ui/messages.js';
 import { createComposerController } from './core/ui/composer.js';
 import { createOverlayController, setVisible } from './core/ui/overlay.js';
@@ -27,6 +29,13 @@ const REQUIRED_IDS = [
   'valki-bubble-badge',
   'valki-bubble-ping',
   'valki-overlay',
+  'valki-agent-hub',
+  'valki-agent-title',
+  'valki-agent-subtitle',
+  'valki-agent-list',
+  'valki-agent-empty',
+  'valki-agent-close',
+  'valki-agent-back',
   'valki-close',
   'valki-header-avatar',
   'valki-title',
@@ -126,11 +135,25 @@ class ViChatWidget {
     this.authHard = false;
     this.isSending = false;
     this.guestHistory = [];
+    this.agents = normalizeAgents(this.config.agents).map((agent) => ({
+      ...agent,
+      avatarUrl: agent.avatarUrl || this.config.avatarUrl
+    }));
+    if (!this.agents.length && this.config.mode === 'agent-hub') {
+      this.agents = normalizeAgents(DEFAULT_AGENTS).map((agent) => ({
+        ...agent,
+        avatarUrl: agent.avatarUrl || this.config.avatarUrl
+      }));
+    }
+    this.currentAgentId = null;
+    this.view = 'chat';
+    this.resolveInitialAgentState();
     this.elements = null;
     this.attachmentController = null;
     this.messageController = null;
     this.composerController = null;
     this.overlayController = null;
+    this.agentHubController = null;
     this.guestMeter = null;
     this.authController = null;
     this._layoutRaf = 0;
@@ -208,6 +231,13 @@ class ViChatWidget {
     });
     this.authController.attach();
 
+    this.agentHubController = createAgentHubController({
+      hubEl: el['valki-agent-hub'],
+      listEl: el['valki-agent-list'],
+      emptyEl: el['valki-agent-empty'],
+      onSelect: (agentId) => this.selectAgent(agentId)
+    });
+
     this.composerController.applyPlaceholders();
     window.addEventListener('languagechange', () => this.composerController.applyPlaceholders());
 
@@ -264,6 +294,8 @@ class ViChatWidget {
     });
 
     el['valki-close'].addEventListener('click', () => this.overlayController.closeOverlay());
+    el['valki-agent-close'].addEventListener('click', () => this.overlayController.closeOverlay());
+    el['valki-agent-back'].addEventListener('click', () => this.showAgentHub());
 
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
@@ -341,6 +373,73 @@ class ViChatWidget {
     this.scheduleLayoutMetrics = scheduleLayoutMetrics;
     this.updateComposerHeight = updateComposerHeight;
     this.updateValkiVh = this.updateValkiVh.bind(this);
+  }
+
+  resolveInitialAgentState() {
+    const startAgent = findAgentById(this.agents, this.config.startAgentId);
+    if (startAgent) {
+      this.currentAgentId = startAgent.id;
+      this.view = 'chat';
+      return;
+    }
+
+    if (this.agents.length === 1) {
+      this.currentAgentId = this.agents[0].id;
+      this.view = 'chat';
+      return;
+    }
+
+    if (this.agents.length > 1) {
+      this.view = 'agent-hub';
+      return;
+    }
+
+    this.view = 'chat';
+  }
+
+  setView(view) {
+    this.view = view;
+    if (this.elements?.['valki-overlay']) {
+      this.elements['valki-overlay'].dataset.view = view;
+    }
+    const backBtn = this.elements?.['valki-agent-back'];
+    if (backBtn) {
+      backBtn.style.display = this.agents.length > 1 && view === 'chat' ? 'inline-flex' : 'none';
+    }
+  }
+
+  applyAgentToHeader(agent) {
+    const el = this.elements;
+    if (!el) return;
+    if (agent) {
+      el['valki-title'].textContent = agent.name;
+      if (agent.avatarUrl) {
+        el['valki-header-avatar'].src = agent.avatarUrl;
+      }
+      el['valki-header-avatar'].alt = `${agent.name} avatar`;
+      this.messageController?.setAgentMeta({ avatarUrl: agent.avatarUrl || this.config.avatarUrl, name: agent.name });
+    } else {
+      el['valki-title'].textContent = this.theme.overlayTitle || this.theme.title || 'ViChat';
+      el['valki-header-avatar'].src = this.theme.avatarUrl || this.config.avatarUrl;
+      el['valki-header-avatar'].alt = 'Valki avatar';
+      this.messageController?.setAgentMeta({ avatarUrl: this.config.avatarUrl, name: 'Valki' });
+    }
+  }
+
+  showAgentHub() {
+    this.setView('agent-hub');
+    this.applyAgentToHeader(null);
+    this.agentHubController?.renderAgents(this.agents);
+    this.messageController?.clearMessagesUI();
+  }
+
+  async selectAgent(agentId) {
+    const agent = findAgentById(this.agents, agentId);
+    if (!agent) return;
+    this.currentAgentId = agent.id;
+    this.setView('chat');
+    this.applyAgentToHeader(agent);
+    await this.loadMessagesForCurrentAgent({ forceOpen: true });
   }
 
   updateValkiVh() {
@@ -473,10 +572,11 @@ class ViChatWidget {
     await importGuestMessages({
       token,
       guestHistory: this.guestHistory,
-      config: this.config
+      config: this.config,
+      agentId: this.currentAgentId
     });
     this.guestHistory = [];
-    clearGuestHistory(this.config);
+    clearGuestHistory(this.config, this.currentAgentId);
     await this.loadLoggedInMessagesToUI({ forceOpen: true });
   }
 
@@ -486,7 +586,11 @@ class ViChatWidget {
 
   async loadLoggedInMessagesToUI({ forceOpen = false } = {}) {
     if (!this.token) return false;
-    const { ok, messages } = await fetchMessages({ token: this.token, config: this.config });
+    const { ok, messages } = await fetchMessages({
+      token: this.token,
+      config: this.config,
+      agentId: this.currentAgentId
+    });
     if (!ok && !messages.length) return false;
     this.messageController.clearMessagesUI();
     for (const m of messages || []) {
@@ -499,9 +603,20 @@ class ViChatWidget {
     return true;
   }
 
+  async loadMessagesForCurrentAgent({ forceOpen = false } = {}) {
+    if (this.isLoggedIn()) {
+      await this.loadLoggedInMessagesToUI({ forceOpen });
+      return;
+    }
+    this.guestHistory = loadGuestHistory(this.config, this.currentAgentId);
+    await this.renderGuestHistoryToUI();
+    if (forceOpen && !this.overlayController.isChatOpen()) this.overlayController.openOverlay();
+    if (this.guestMeter.guestHardBlocked()) this.openAuthOverlay(true);
+  }
+
   async clearChatAll() {
     if (this.isLoggedIn()) {
-      const ok = await clearMessages({ token: this.token, config: this.config });
+      const ok = await clearMessages({ token: this.token, config: this.config, agentId: this.currentAgentId });
       if (ok) {
         await this.loadLoggedInMessagesToUI();
         this.scheduleLayoutMetrics?.();
@@ -512,7 +627,7 @@ class ViChatWidget {
       return;
     }
     this.guestHistory = [];
-    saveGuestHistory(this.guestHistory, this.config);
+    saveGuestHistory(this.guestHistory, this.config, this.currentAgentId);
     this.messageController.clearMessagesUI();
     this.scheduleLayoutMetrics?.();
   }
@@ -530,7 +645,7 @@ class ViChatWidget {
 
     this.attachmentController.clearAttachments();
     this.guestHistory = [];
-    clearGuestHistory(this.config);
+    clearGuestHistory(this.config, this.currentAgentId);
     this.guestMeter.reset();
 
     this.messageController.clearMessagesUI();
@@ -572,7 +687,7 @@ class ViChatWidget {
 
     if (!this.isLoggedIn()) {
       this.guestHistory.push({ type: 'user', text: q });
-      saveGuestHistory(this.guestHistory, this.config);
+      saveGuestHistory(this.guestHistory, this.config, this.currentAgentId);
       this.guestMeter.bumpGuestCount();
     }
 
@@ -582,7 +697,7 @@ class ViChatWidget {
     const persistGuestBot = (msg) => {
       if (this.isLoggedIn()) return;
       this.guestHistory.push({ type: 'bot', text: msg });
-      saveGuestHistory(this.guestHistory, this.config);
+      saveGuestHistory(this.guestHistory, this.config, this.currentAgentId);
       this.guestMeter.maybePromptLoginAfterSend((opts) => this.openAuthOverlay(opts.hard));
     };
 
@@ -600,7 +715,8 @@ class ViChatWidget {
         clientId: this.clientId,
         images: payloadImages,
         token: this.token,
-        config: this.config
+        config: this.config,
+        agentId: this.currentAgentId
       });
 
       removeTyping();
@@ -630,14 +746,14 @@ class ViChatWidget {
     }
     markBubbleSeen(this.config);
     this.hideBubbleBadge();
+    this.setView(this.view);
 
-    if (this.isLoggedIn()) {
-      await this.loadLoggedInMessagesToUI({ forceOpen: true });
+    if (this.view === 'agent-hub') {
+      this.overlayController.openOverlay();
+      this.agentHubController?.renderAgents(this.agents);
       return;
     }
-    this.overlayController.openOverlay();
-    await this.renderGuestHistoryToUI();
-    if (this.guestMeter.guestHardBlocked()) this.openAuthOverlay(true);
+    await this.loadMessagesForCurrentAgent({ forceOpen: true });
   }
 
   onDeleteAll() {
@@ -654,11 +770,15 @@ class ViChatWidget {
 
     if (shouldShowBubbleBadge(this.config)) this.showBubbleBadge('1');
 
-    if (this.isLoggedIn()) {
-      await this.loadLoggedInMessagesToUI({ forceOpen: false });
+    this.resolveInitialAgentState();
+    this.setView(this.view);
+    this.agentHubController?.renderAgents(this.agents);
+    this.applyAgentToHeader(findAgentById(this.agents, this.currentAgentId));
+
+    if (this.view === 'chat') {
+      await this.loadMessagesForCurrentAgent({ forceOpen: false });
     } else {
-      this.guestHistory = loadGuestHistory(this.config);
-      await this.renderGuestHistoryToUI();
+      this.messageController.clearMessagesUI();
     }
 
     this.updateDeleteButtonVisibility();

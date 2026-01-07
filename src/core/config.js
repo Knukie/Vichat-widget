@@ -12,6 +12,9 @@ export const DEFAULT_CONSTANTS = {
   historyKey: 'valki_history_v20',
   guestMeterKey: 'valki_guest_meter_v1',
   clientIdKey: 'valki_client_id_v20',
+  mode: 'default',
+  agents: [],
+  startAgentId: '',
   copy: {
     genericError: 'Something went wrong talking to Valki.',
     noResponse: '…krrzzzt… no response received.'
