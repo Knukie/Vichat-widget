@@ -1,5 +1,8 @@
 import { generateId } from './storage.js';
 
+/** @typedef {import('@valki/contracts').ImageMeta} ImageMeta */
+/** @typedef {Partial<ImageMeta> & { id: string, name: string, type: string, dataUrl: string }} UiAttachment */
+
 export function createAttachmentController({
   attachTray,
   attachButton,
@@ -8,6 +11,7 @@ export function createAttachmentController({
   updateComposerHeight,
   config
 }) {
+  /** @type {UiAttachment[]} */
   let attachments = [];
 
   function showAttachTray() {

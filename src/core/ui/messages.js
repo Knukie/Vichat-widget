@@ -1,5 +1,9 @@
 import { ensureMarkdownLibs, hardenLinks, renderMarkdown } from '../markdown.js';
 
+/** @typedef {import('@valki/contracts').Role} Role */
+/** @typedef {Role | 'user'} UiRole */
+/** @typedef {{ type: UiRole, text: string }} UiMessageInput */
+
 function isNearBottom(el, thresholdPx = 90) {
   if (!el) return true;
   const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
@@ -22,6 +26,7 @@ export function createMessageController({
     }
   }
 
+  /** @param {UiMessageInput} param0 */
   async function addMessage({ type, text }) {
     const stick = isNearBottom(messagesEl);
     if (type === 'bot') await ensureMarkdownLibs();
@@ -30,6 +35,7 @@ export function createMessageController({
     updateDeleteButtonVisibility?.();
   }
 
+  /** @param {UiMessageInput} param0 */
   function createMessageRow({ type, text }) {
     const row = document.createElement('div');
     row.className = `valki-msg-row ${type === 'user' ? 'user' : 'bot'}`;
