@@ -1,3 +1,5 @@
+⚠️ This repository has moved to https://github.com/Knukie/Vichat-monorepo”
+
 # Vichat Widget — Embedded Chat Frontend (Theme: Valki Talki)
 
 De **Vichat Widget** is de embedbare frontend van het Vichat-platform.  
