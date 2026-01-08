@@ -1,3 +1,14 @@
+/** @typedef {import('@valki/contracts').ImageMeta} ImageMeta */
+/** @typedef {import('@valki/contracts').Message} Message */
+/** @typedef {import('@valki/contracts').Role} Role */
+/** @typedef {import('@valki/contracts').User} User */
+/** @typedef {Role | 'user'} UiRole */
+/** @typedef {Pick<Message, 'role'> & { role: UiRole, text: string }} UiMessage */
+/** @typedef {User & { name?: string | null }} UiUser */
+/** @typedef {Partial<ImageMeta> & { name?: string, dataUrl?: string }} UiImagePayload */
+/** @typedef {{ ok: boolean, messages: UiMessage[] }} FetchMessagesResult */
+
+/** @returns {Promise<UiUser | null>} */
 export async function fetchMe({ token, config }) {
   if (!token) return null;
   try {
@@ -17,6 +28,7 @@ function withAgentParam(url, agentId) {
   return next.toString();
 }
 
+/** @returns {Promise<FetchMessagesResult>} */
 export async function fetchMessages({ token, config, agentId }) {
   if (!token) return { ok: false, messages: [] };
   try {
@@ -51,6 +63,7 @@ export async function clearMessages({ token, config, agentId }) {
   }
 }
 
+/** @param {{ token: string, guestHistory: Array<{ type: UiRole, text: string }>, config: object, agentId: string }} args */
 export async function importGuestMessages({ token, guestHistory, config, agentId }) {
   if (!token || !Array.isArray(guestHistory) || !guestHistory.length) return;
   const payload = {
@@ -72,6 +85,7 @@ export async function importGuestMessages({ token, guestHistory, config, agentId
   }
 }
 
+/** @param {{ message: string, clientId: string, images: UiImagePayload[], token: string, config: object, agentId: string }} args */
 export async function askValki({ message, clientId, images, token, config, agentId }) {
   const payload = { message, clientId, images, agentId };
   const headers = { 'Content-Type': 'application/json' };

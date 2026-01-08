@@ -23,6 +23,16 @@ import { createAuthController } from './core/auth.js';
 import { askValki, clearMessages, fetchMe, fetchMessages, importGuestMessages } from './core/api.js';
 import { resolveTheme } from './themes/index.js';
 
+/** @typedef {import('@valki/contracts').ImageMeta} ImageMeta */
+/** @typedef {import('@valki/contracts').Message} Message */
+/** @typedef {import('@valki/contracts').Role} Role */
+/** @typedef {import('@valki/contracts').User} User */
+/** @typedef {Role | 'user'} UiRole */
+/** @typedef {Pick<Message, 'role'> & { role: UiRole, text: string }} UiMessage */
+/** @typedef {{ type: UiRole, text: string }} UiGuestMessage */
+/** @typedef {User & { name?: string | null }} UiUser */
+/** @typedef {Partial<ImageMeta> & { name?: string, dataUrl?: string }} UiImagePayload */
+
 const REQUIRED_IDS = [
   'valki-root',
   'valki-bubble',
@@ -135,9 +145,11 @@ class ViChatWidget {
     this.theme = resolveTheme(this.config.theme);
     this.token = getAuthToken(this.config);
     this.clientId = getOrCreateClientId(this.config);
+    /** @type {UiUser | null} */
     this.me = null;
     this.authHard = false;
     this.isSending = false;
+    /** @type {UiGuestMessage[]} */
     this.guestHistory = [];
     this.agents = normalizeAgents(this.config.agents).map((agent) => ({
       ...agent,
@@ -713,6 +725,7 @@ class ViChatWidget {
     this.isSending = true;
     this.setSendingState(true);
 
+    /** @type {UiImagePayload[]} */
     const imagesSnapshot = this.attachmentController.snapshot().filter((x) => x.dataUrl);
 
     await this.messageController.addMessage({ type: 'user', text: q });

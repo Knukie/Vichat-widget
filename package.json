@@ -23,6 +23,7 @@
     "test:embed": "npx playwright test --reporter=line tests/embed-compat.spec.ts"
   },
   "dependencies": {
+    "@valki/contracts": "https://github.com/Knukie/valki-contracts.git#main",
     "express": "^4.18.2"
   },
   "devDependencies": {
